@@ -1,0 +1,260 @@
+[
+    {
+        "id": "B",
+        "type": "or",
+        "objclass": "SoftwareProduct",
+        "objid": "287968155802853",
+        "atkname": "compromiseApplication",
+        "ttc": {
+            "type": "function",
+            "name": "Exponential",
+            "arguments": [
+                0.5
+            ],
+            "cost": [
+                6
+            ]
+        },
+        "links": [
+            "C",
+            "G"
+        ],
+        "is_reachable": true,
+        "defense_status": null,
+        "graph_type": "attackgraph",
+        "is_traversable": false,
+        "required_steps": [],
+        "extra": null
+    },
+    {
+        "id": "C",
+        "type": "and",
+        "objclass": "Application",
+        "objid": "7219598629313512",
+        "atkname": "attemptFullAccessAfterSoftProdCompromise",
+        "ttc": {
+            "type": "function",
+            "name": "Exponential",
+            "arguments": [
+                0.6
+            ],
+            "cost": [
+                5
+            ]
+        },
+        "links": [
+            "E"
+        ],
+        "is_reachable": true,
+        "defense_status": null,
+        "graph_type": "attackgraph",
+        "is_traversable": false,
+        "required_steps": [
+            "-:supplyChainAuditing",
+            "-:attemptFullAccessAfterSoftProdCompromise"
+        ],
+        "extra": null,
+        "parent_list": [
+            "B",
+            "D"
+        ]
+    },
+    {
+        "id": "I",
+        "type": "or",
+        "objclass": "Application",
+        "objid": "7219598629313512",
+        "atkname": "fullAccessAfterSoftProdVulnerability",
+        "ttc": {
+            "type": "function",
+            "name": "Exponential",
+            "arguments": [
+                1.0
+            ],
+            "cost": [
+                1
+            ]
+        },
+        "links": [
+            "H"
+        ],
+        "is_reachable": false,
+        "defense_status": null,
+        "graph_type": "attackgraph",
+        "is_traversable": false,
+        "required_steps": [
+            "-:localAccess",
+            "-:networkAccess",
+            "-:fullAccessAfterSoftProdCompromise",
+            "-:fullAccessAfterSoftProdVulnerability",
+            "-:modify",
+            "System:fullAccess",
+            "RoutingFirewall:fullAccess"
+        ],
+        "extra": null
+    },
+    {
+        "id": "D",
+        "type": "or",
+        "objclass": "Application",
+        "objid": "7219598629313512",
+        "atkname": "supplyChainAuditing",
+        "ttc": {
+            "type": "function",
+            "name": "Exponential",
+            "arguments": [
+                1.0
+            ],
+            "cost": [
+                1
+            ]
+        },
+        "links": [
+            "C",
+            "F"
+        ],
+        "is_reachable": false,
+        "defense_status": null,
+        "graph_type": "attackgraph",
+        "is_traversable": false,
+        "required_steps": null,
+        "extra": null
+    },
+    {
+        "id": "A",
+        "type": "or",
+        "objclass": "Application",
+        "objid": "7219598629313512",
+        "atkname": "read",
+        "ttc": {
+            "type": "function",
+            "name": "Exponential",
+            "arguments": [
+                0.3
+            ],
+            "cost": [
+                8
+            ]
+        },
+        "links": [
+            "B"
+        ],
+        "is_reachable": true,
+        "defense_status": null,
+        "graph_type": "attackgraph",
+        "is_traversable": false,
+        "required_steps": [],
+        "extra": null
+    },
+    {
+        "id": "E",
+        "type": "and",
+        "objclass": "Application",
+        "objid": "7219598629313512",
+        "atkname": "fullAccess",
+        "ttc": {
+            "type": "function",
+            "name": "Exponential",
+            "arguments": [
+                0.4
+            ],
+            "cost": [
+                7
+            ]
+        },
+        "links": [
+            "H"
+        ],
+        "is_reachable": true,
+        "defense_status": null,
+        "graph_type": "attackgraph",
+        "is_traversable": false,
+        "required_steps": [
+            "-:specificAccess",
+            "-:fullAccess",
+            "Network:reverseReach",
+            "RoutingFirewall:reverseReach"
+        ],
+        "extra": null,
+        "parent_list": [
+            "C",
+            "F"
+        ]
+    },
+    {
+        "id": "G",
+        "type": "or",
+        "objclass": "Application",
+        "objid": "7219598629313512",
+        "atkname": "networkRequestConnect",
+        "ttc": {
+            "type": "function",
+            "name": "Exponential",
+            "arguments": [
+                0.8
+            ],
+            "cost": [
+                3
+            ]
+        },
+        "links": [
+            "D"
+        ],
+        "is_reachable": true,
+        "defense_status": null,
+        "graph_type": "attackgraph",
+        "is_traversable": false,
+        "required_steps": [],
+        "extra": null
+    },
+    {
+        "id": "F",
+        "type": "or",
+        "objclass": "Application",
+        "objid": "7219598629313512",
+        "atkname": "networkRequestConnect",
+        "ttc": {
+            "type": "function",
+            "name": "Exponential",
+            "arguments": [
+                0.8
+            ],
+            "cost": [
+                3
+            ]
+        },
+        "links": [
+            "E"
+        ],
+        "is_reachable": true,
+        "defense_status": null,
+        "graph_type": "attackgraph",
+        "is_traversable": false,
+        "required_steps": [],
+        "extra": null
+    },
+    {
+        "id": "H",
+        "type": "or",
+        "objclass": "Application",
+        "objid": "7219598629313512",
+        "atkname": "networkRequestConnect",
+        "ttc": {
+            "type": "function",
+            "name": "Exponential",
+            "arguments": [
+                0.8
+            ],
+            "cost": [
+                3
+            ]
+        },
+        "links": [],
+        "is_reachable": true,
+        "defense_status": null,
+        "graph_type": "attackgraph",
+        "is_traversable": false,
+        "required_steps": [],
+        "extra": null
+    }
+]
