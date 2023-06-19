@@ -3,15 +3,14 @@ from py2neo import Graph
 import a_star_shortest_path as a_star_shortest_path
 
 def main():
-    #with open("/Users/beatajohansson/Projects/mgg/tmp/atkgraph.json", 'r') as readfile:
-    file="small_graph_2.json"
+    file="small_graph.json"
     with open(file, 'r') as readfile:
         atkgraph = json.load(readfile)
 
     atkgraph=get_parents_for_and_nodes(atkgraph)
 
    
-    with open('ao_atkgraph.json', 'w', encoding='utf-8') as writefile:
+    with open('atkgraph.json', 'w', encoding='utf-8') as writefile:
         json.dump(atkgraph, writefile, indent=4)
     
     path=a_star_shortest_path.a_star(atkgraph)
