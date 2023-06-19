@@ -16,13 +16,26 @@ def all_parents_visited(atkgraph, neighbor, open_set, parent_nodes, visited):
                 return False 
     return True
     
-def reconstruct_path(came_from, current):
-    total_path = [current]
-    while current in came_from.keys():
-        current = came_from[current]
-        print("CURRENT",current)
-        total_path.insert(0,current)
+def is_and_node(neighbor, parent_nodes):
+    if neighbor in parent_nodes:
+       return True
+    return False
+
+def reconstruct_path(came_from, current, start_node):
+    if current != start_node:
+        total_path = [current]
+        while current in came_from.keys():
+            current = came_from[current]
+            if current == '':
+                break
+            if len(current)>1:
+                for node in current:
+                    path = reconstruct_path(came_from, node, start_node)
+                    total_path.insert(0,path)
+            else:
+                total_path.insert(0,current)
     return total_path
+
 
 def fill_dictionary(atkgraph, score):
     scores = {}
@@ -55,7 +68,7 @@ def calculate_heuristic(node, target, atkgraph):
     if 'ttc' in node and 'cost' in node['ttc']:
         path_cost = 0
         current_node = node
-        while current_node['id'] != target['id']:
+        while current_node['id'] != target['id'] and len(current_node['links'])>0:
             path_cost += sum(current_node['ttc']['cost'])
             next_node_id = current_node['links'][0]  # assuming there is only one outgoing link
             next_node = next(n for n in atkgraph if n['id'] == next_node_id)
@@ -89,7 +102,7 @@ def a_star(atkgraph):
 
     start_node = "A" # id attribute in json file
 
-    target_node = "H"
+    target_node = "E"
 
     open_set = []
     heapq.heappush(open_set, (0, start_node))
@@ -135,7 +148,7 @@ def a_star(atkgraph):
             print("Finished")
             print(visited)
             print(came_from)
-            return reconstruct_path(came_from, current_node)
+            return reconstruct_path(came_from, current_node, start_node)
 
         current_neighbors = neighbor_nodes[current_node]
         print(current_neighbors)
@@ -146,11 +159,15 @@ def a_star(atkgraph):
 
             if tentative_g_score < g_score[neighbor]:
                 if all_parents_visited(atkgraph, neighbor, open_set, parent_nodes, visited):
-                    came_from[neighbor] = current_node
+                    came_from[neighbor] += current_node
                     g_score[neighbor] = tentative_g_score
                     f_score[neighbor] = tentative_g_score + h_score[neighbor]
                     if neighbor not in open_set:
                         heapq.heappush(open_set, (g_score[neighbor], neighbor))
+                elif is_and_node(neighbor, parent_nodes):
+                    costs[neighbor]=tentative_g_score   # even if we can't continue to the and node, still update the node cost
+                    came_from[neighbor]+=current_node
+                    print(came_from)
                     
     print("shortest path found ?")
 
