@@ -1,34 +1,34 @@
 [
     {
-    "id": "B",
-    "type": "or",
-    "objclass": "SoftwareProduct",
-    "objid": "287968155802853",
-    "atkname": "compromiseApplication",
-    "ttc": {
-        "type": "function",
-        "name": "Exponential",
-        "arguments": [
-            0.5
+        "id": "B",
+        "type": "or",
+        "objclass": "SoftwareProduct",
+        "objid": "287968155802853",
+        "atkname": "compromiseApplication",
+        "ttc": {
+            "type": "function",
+            "name": "Exponential",
+            "arguments": [
+                0.5
+            ],
+            "cost": [
+                6
+            ]
+        },
+        "links": [
+            "C",
+            "G"
         ],
-        "cost": [
-            6
-        ]
-    },
-    "links": [
-        "C",
-        "G"
-    ],
-    "is_reachable": true,
-    "defense_status": null,
-    "graph_type": "attackgraph",
-    "is_traversable": false,
-    "required_steps": [],
-    "extra": null
+        "is_reachable": true,
+        "defense_status": null,
+        "graph_type": "attackgraph",
+        "is_traversable": false,
+        "required_steps": [],
+        "extra": null
     },
     {
         "id": "C",
-        "type": "and",
+        "type": "or",
         "objclass": "Application",
         "objid": "7219598629313512",
         "atkname": "attemptFullAccessAfterSoftProdCompromise",
@@ -171,7 +171,11 @@
             "Network:reverseReach",
             "RoutingFirewall:reverseReach"
         ],
-        "extra": null
+        "extra": null,
+        "parent_list": [
+            "C",
+            "F"
+        ]
     },
     {
         "id": "G",

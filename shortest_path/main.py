@@ -3,7 +3,7 @@ from py2neo import Graph
 import a_star_shortest_path as a_star_shortest_path
 
 def main():
-    file="small_graph.json"
+    file="test_graphs/small_graph.json"
     with open(file, 'r') as readfile:
         atkgraph = json.load(readfile)
 

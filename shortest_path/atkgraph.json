@@ -60,7 +60,7 @@
         ]
     },
     {
-        "id": "I",
+        "id": "F",
         "type": "or",
         "objclass": "Application",
         "objid": "7219598629313512",
@@ -76,7 +76,7 @@
             ]
         },
         "links": [
-            "H"
+            "E"
         ],
         "is_reachable": false,
         "defense_status": null,
@@ -110,8 +110,7 @@
             ]
         },
         "links": [
-            "C",
-            "F"
+            "C"
         ],
         "is_reachable": false,
         "defense_status": null,
@@ -148,7 +147,7 @@
     },
     {
         "id": "E",
-        "type": "and",
+        "type": "or",
         "objclass": "Application",
         "objid": "7219598629313512",
         "atkname": "fullAccess",
@@ -162,9 +161,7 @@
                 7
             ]
         },
-        "links": [
-            "H"
-        ],
+        "links": [],
         "is_reachable": true,
         "defense_status": null,
         "graph_type": "attackgraph",
@@ -175,11 +172,7 @@
             "Network:reverseReach",
             "RoutingFirewall:reverseReach"
         ],
-        "extra": null,
-        "parent_list": [
-            "C",
-            "F"
-        ]
+        "extra": null
     },
     {
         "id": "G",
@@ -200,56 +193,6 @@
         "links": [
             "D"
         ],
-        "is_reachable": true,
-        "defense_status": null,
-        "graph_type": "attackgraph",
-        "is_traversable": false,
-        "required_steps": [],
-        "extra": null
-    },
-    {
-        "id": "F",
-        "type": "or",
-        "objclass": "Application",
-        "objid": "7219598629313512",
-        "atkname": "networkRequestConnect",
-        "ttc": {
-            "type": "function",
-            "name": "Exponential",
-            "arguments": [
-                0.8
-            ],
-            "cost": [
-                3
-            ]
-        },
-        "links": [
-            "E"
-        ],
-        "is_reachable": true,
-        "defense_status": null,
-        "graph_type": "attackgraph",
-        "is_traversable": false,
-        "required_steps": [],
-        "extra": null
-    },
-    {
-        "id": "H",
-        "type": "or",
-        "objclass": "Application",
-        "objid": "7219598629313512",
-        "atkname": "networkRequestConnect",
-        "ttc": {
-            "type": "function",
-            "name": "Exponential",
-            "arguments": [
-                0.8
-            ],
-            "cost": [
-                3
-            ]
-        },
-        "links": [],
         "is_reachable": true,
         "defense_status": null,
         "graph_type": "attackgraph",
