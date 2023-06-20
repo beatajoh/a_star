@@ -1,5 +1,6 @@
 import numpy as np
 
+
 # Bernoulli
 p = 0.3
 bernoulli_sample = np.random.choice([0, 1], p=[1 - p, p])
