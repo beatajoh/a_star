@@ -3,23 +3,34 @@ from py2neo import Graph
 import a_star_shortest_path as a_star_shortest_path
 
 def main():
+
     file="test_graphs/small_graph.json"
+
+    start_node = "A" # id attribute in json file
+
+    target_node = "E"
+
+    # reachability analysis
+
     with open(file, 'r') as readfile:
-        atkgraph = json.load(readfile)
+        atkgraph=json.load(readfile)
 
-    atkgraph=get_parents_for_and_nodes(atkgraph)
+    # Get all parent nodes for 'and' nodes in the graph
+    atkgraph = get_parents_for_and_nodes(atkgraph)
 
-   
-    with open('atkgraph.json', 'w', encoding='utf-8') as writefile:
+    # write the attack graph to atkgraph.json in test_graphs directory
+    with open('test_graphs/atkgraph.json', 'w', encoding='utf-8') as writefile:
         json.dump(atkgraph, writefile, indent=4)
     
-    path=a_star_shortest_path.a_star(atkgraph)
+    # calculate the shortest path
+    path=a_star_shortest_path.a_star(atkgraph, start_node, target_node)
 
     print("\n\n", path, "\n\n\n")
     
     
 '''
-Go through the attack graph .json file and get all parents to and nodes and add new "parent_list" attribute to the file.
+Traverse the attack graph .json file and get all parents to 'and' nodes and add new 'parent_list' attribute to the file.
+parent_list is an array of attack step ids.
 '''
 def get_parents_for_and_nodes(atkgraph):
     n=0
