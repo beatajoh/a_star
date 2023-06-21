@@ -10,7 +10,7 @@ def main():
 
     target_node = "E"
 
-    # reachability analysis
+    # reachability analysis ?
 
     with open(file, 'r') as readfile:
         atkgraph=json.load(readfile)
@@ -50,41 +50,8 @@ def get_parents_for_and_nodes(atkgraph):
     return atkgraph
                     
 
-def convert_model_to_mgg(uri="bolt://localhost:7687", 
-            username="neo4j",
-            password="mgg12345!",
-            dbname="neo4j",
-            delete=False
-    ) -> dict:
-        print("hello")
-        g = Graph(uri=uri, user=username, password=password, name=dbname) 
+# function for viewing the shortest path ?
 
-        # Get all relationships
-        results = g.run('MATCH paths=(source {name: "Attacker:6417249322885591:firstSteps"})-[*]->(target {name: "Application:7219598629313512:networkAccess"}) return paths'
-    ).data()
-        print(results)
-
-        objects = {}
-        associations = []
-
-        for row in results:
-            rel1 = list(row['r1'].types())[0]
-            rel2 = list(row['r2'].types())[0]
-            nodea = dict(row['a'])
-            nodeb = dict(row['b'])
-            objects[nodea['scad_id']] = {your_key: nodea[your_key] for your_key in ['name','metaconcept','eid']}
-            objects[nodeb['scad_id']] = {your_key: nodeb[your_key] for your_key in ['name','metaconcept','eid']}
-            add_elem = True
-            for assoc in associations:
-                if set([nodea['scad_id'],nodeb['scad_id'],rel1,rel2]) == set(assoc.values()):
-                    add_elem = False
-            if add_elem:
-                associations.append({'id1': nodea['scad_id'], 'id2': nodeb['scad_id'], 'type1': rel1, 'type2': rel2})
-
-
-        newmodel = {'metadata': {'scadVersion': '1.0.0', 'langVersion': '0.3.0', 'langID': 'org.mal-lang.coreLang', 'malVersion': '0.1.0-SNAPSHOT', 'info': 'Created with securiCAD Professional 1.6'}, 'objects': objects, 'associations': associations}
-        print("\n\nEXIT\n\n")
-        return newmodel
 
 if __name__=='__main__':
      main()
