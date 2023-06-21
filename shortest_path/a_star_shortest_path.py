@@ -13,10 +13,11 @@ def all_parents_visited(atkgraph, node, open_set, parent_nodes, visited):
     print("node:" + node)
     print("parent_nodes: ", parent_nodes)
     print("="*100)
-    if node in parent_nodes:
+    if is_and_node(node, parent_nodes):
         print("AND NODE!!!",node)
         for parents in parent_nodes[node]:
             if parents not in visited:
+                print(parent_nodes)
                 print("FALSE AND", node)
                 return False 
     return True
@@ -30,22 +31,30 @@ def is_and_node(node, parent_nodes):
     return False
 
 '''
-Reconstructs the path found by the a_star function.
+Reconstructs the path found by the a_star function and calculates the total cost for the path.
 '''
-def reconstruct_path(came_from, current, start_node):
+def reconstruct_path(came_from, current, start_node, costs, visited=set()):
+    print(current)
+    cost = 0
     if current != start_node:
         total_path = [current]
         while current in came_from.keys():
-            current = came_from[current]
-            if current == '':
-                break
+            old_current = current
+            current = came_from[current]        
             if len(current)>1:
                 for node in current:
-                    path = reconstruct_path(came_from, node, start_node)
+                    path, costt = reconstruct_path(came_from, node, start_node, costs, visited)
                     total_path.insert(0,path)
+                    cost+=costt+costs[old_current]
+                    print(path," ? ", costt, "  ?  ")
             else:
                 total_path.insert(0,current)
-    return total_path
+                if old_current not in visited:
+                    cost+=costs[old_current]
+                    visited.add(old_current)
+                if current == start_node:
+                    break
+    return total_path, cost
 
 '''
 Fills a dictionary.
@@ -141,12 +150,14 @@ def a_star(atkgraph, start_node, target_node):
     print("-"*100)
 
     costs = get_costs_for_nodes(atkgraph)
+    costs_copy = get_costs_for_nodes(atkgraph)
     neighbor_nodes = get_neighbor_nodes(atkgraph)
     parent_nodes = get_parent_nodes_for_and_nodes(atkgraph)
 
     current_node = start_node
 
     while len(open_set) > 0:
+        print(g_score["C"])
         print("OPEN SET        ",open_set)
         # current_node is the node in open_set having the lowest f_score value
         current_score, current_node = heapq.heappop(open_set)
@@ -156,19 +167,23 @@ def a_star(atkgraph, start_node, target_node):
             print("Finished")
             print(visited)
             print(came_from)
-            return reconstruct_path(came_from, current_node, start_node)
+            print(current_node)
+            print(current_score)
+            print("COSTS: ", costs_copy)
+            return reconstruct_path(came_from, current_node, start_node, costs_copy)
 
         current_neighbors = neighbor_nodes[current_node]
         print(current_neighbors)
-        for neighbor in current_neighbors:
-            print(neighbor)
-            
+        found_a_path=False
+        if len(current_neighbors)>1:
+            print("HALFAJFOEAÅ")
+        for neighbor in current_neighbors:            
             tentative_g_score = g_score[current_node]+costs[neighbor]
-
             # try the neighbor node with a lower g_score than the previous node
             if tentative_g_score < g_score[neighbor]:
                 # if it is an 'or' node or if the and all parents to the 'and' node has been visited,
                 # continue to try this path
+                print(found_a_path)
                 if all_parents_visited(atkgraph, neighbor, open_set, parent_nodes, visited):
                     came_from[neighbor] += current_node
                     g_score[neighbor] = tentative_g_score
@@ -177,8 +192,10 @@ def a_star(atkgraph, start_node, target_node):
                         heapq.heappush(open_set, (g_score[neighbor], neighbor))
                 # if the node is an 'and' node, still update the node cost and keep track of the path
                 elif is_and_node(neighbor, parent_nodes):
+                    #costs[neighbor]=tentative_g_score
                     costs[neighbor]=tentative_g_score
                     came_from[neighbor]+=current_node
+                    print("YEEES ADDING ",tentative_g_score)
                     
     # return false if the open set is empty but goal was never reached
     return False 
