@@ -16,7 +16,7 @@ def all_parents_visited(atkgraph, node, open_set, parent_nodes, visited):
     if node in parent_nodes:
         print("AND NODE!!!",node)
         for parents in parent_nodes[node]:
-            if visited[parents] == 0:
+            if parents not in visited:
                 print("FALSE AND", node)
                 return False 
     return True
@@ -115,8 +115,9 @@ def a_star(atkgraph, start_node, target_node):
     open_set = []
     heapq.heappush(open_set, (0, start_node))
 
-    visited = fill_dictionary(atkgraph,0)
-    visited[start_node]=1
+    visited = set()
+    visited.add(start_node)
+
     came_from = fill_dictionary(atkgraph, "")
 
     g_score = fill_dictionary(atkgraph, 10000) # map with default value of Infinity
@@ -147,9 +148,9 @@ def a_star(atkgraph, start_node, target_node):
 
     while len(open_set) > 0:
         print("OPEN SET        ",open_set)
-        # current_node = the node in openSet having the lowest f_score value
+        # current_node is the node in open_set having the lowest f_score value
         current_score, current_node = heapq.heappop(open_set)
-        visited[current_node]=1
+        visited.add(current_node)
 
         if current_node == target_node:
             print("Finished")
@@ -162,7 +163,7 @@ def a_star(atkgraph, start_node, target_node):
         for neighbor in current_neighbors:
             print(neighbor)
             
-            tentative_g_score = g_score[current_node]+costs[neighbor] # d(current, neighbor)
+            tentative_g_score = g_score[current_node]+costs[neighbor]
 
             # try the neighbor node with a lower g_score than the previous node
             if tentative_g_score < g_score[neighbor]:
