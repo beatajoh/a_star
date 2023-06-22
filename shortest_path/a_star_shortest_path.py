@@ -153,7 +153,7 @@ def a_star(atkgraph, start_node, target_node):
         else:
             h_score[node['id']] = calculate_heuristic(node, atkgraph[-1], atkgraph)
     '''
-
+    
     costs = get_costs_for_nodes(atkgraph)
     costs_copy = get_costs_for_nodes(atkgraph)
     neighbor_nodes = get_neighbor_nodes(atkgraph)
@@ -179,7 +179,7 @@ def a_star(atkgraph, start_node, target_node):
                 if all_parents_visited(atkgraph, neighbor, open_set, parent_nodes, visited):
                     came_from[neighbor].append(current_node)
                     g_score[neighbor] = tentative_g_score
-                    f_score[neighbor] = tentative_g_score + 0 #h_score[neighbor]
+                    f_score[neighbor] = tentative_g_score + h_score[neighbor]
                     if neighbor not in open_set:
                         heapq.heappush(open_set, (f_score[neighbor], neighbor))
                 # if the node is an 'and' node, still update the node cost and keep track of the path
