@@ -34,38 +34,26 @@ def is_and_node(node, parent_nodes):
 Reconstructs the path found by the a_star function and calculates the total cost for the path.
 '''
 def reconstruct_path(came_from, current, start_node, costs, visited=set()):
-    #print(current)
     print("\n\n")
     print(came_from)
     cost = 0
     total_path=[]
-    #print(came_from.keys())
     if current != start_node:
         total_path = [current]
-        print("OJ", total_path)
         while current in came_from.keys() and current != start_node:
-            print("# loops", current)
             old_current = current
-            print("NEXT:  ",came_from[current])
             current = came_from[current]        
             if len(current)>1:
                 for node in current:
                     path, costt = reconstruct_path(came_from, node, start_node, costs, visited)
                     total_path.insert(0,path)
                     cost+=costt+costs[old_current]
-                    #print(path," ? ", costt, "  ?  ")
             else:
                 current = current[0]
                 if old_current not in visited:
                     cost+=costs[old_current]
                     visited.add(old_current)
-                print("ERROR   ",current[0])
                 total_path.insert(0,current)
-                
-                #if current == start_node:
-                #    break
-    
-    #print(came_from,"????????????")
     return total_path, cost
 
 '''
@@ -161,6 +149,7 @@ def a_star(atkgraph, start_node, target_node):
     f_score[start_node] = h_score[start_node]
 
     '''
+    
     for node in atkgraph:
         if node['id'] == start_node:
             h_score[node['id']] = calculate_heuristic(node, node, atkgraph)  
@@ -222,7 +211,7 @@ def a_star(atkgraph, start_node, target_node):
                     
                     came_from[neighbor].append(current_node)
                     g_score[neighbor] = tentative_g_score
-                    f_score[neighbor] = tentative_g_score + 0#h_score[neighbor]
+                    f_score[neighbor] = tentative_g_score + 0 #h_score[neighbor]
                     if neighbor not in open_set:
                         heapq.heappush(open_set, (g_score[neighbor], neighbor))
                 # if the node is an 'and' node, still update the node cost and keep track of the path
