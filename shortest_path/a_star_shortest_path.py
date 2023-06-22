@@ -9,16 +9,11 @@ If the node is an 'or' node, the function returns True.
 If the node is an 'and' node, the function returns True if all parent nodes has been visited.
 '''
 def all_parents_visited(atkgraph, node, open_set, parent_nodes, visited):
-    #print("="*100)
-    #print("node:" + node)
-    #print("parent_nodes: ", parent_nodes)
-    #print("="*100)
     if is_and_node(node, parent_nodes):
-        #print("AND NODE!!!",node)
+        # if all the dependency steps (parents) are visited return true,
+        # otherwise return false
         for parents in parent_nodes[node]:
             if parents not in visited:
-                #print(parent_nodes)
-                #print("FALSE AND", node)
                 return False 
     return True
     
@@ -34,44 +29,48 @@ def is_and_node(node, parent_nodes):
 Reconstructs the path found by the a_star function and calculates the total cost for the path.
 '''
 def reconstruct_path(came_from, current, start_node, costs, visited=set()):
-    print("\n\n")
-    print(came_from)
     cost = 0
     total_path=[]
     if current != start_node:
         total_path = [current]
+        # reconstruct the path until the start node is reached
         while current in came_from.keys() and current != start_node:
             old_current = current
-            current = came_from[current]        
+            current = came_from[current] 
+            # special condition for 'and' node       
             if len(current)>1:
                 for node in current:
                     path, costt = reconstruct_path(came_from, node, start_node, costs, visited)
                     total_path.insert(0,path)
-                    cost+=costt+costs[old_current]
+                    cost += costt+costs[old_current]
             else:
                 current = current[0]
+                # update cost for all nodes once
                 if old_current not in visited:
-                    cost+=costs[old_current]
+                    cost += costs[old_current]
                     visited.add(old_current)
                 total_path.insert(0,current)
     return total_path, cost
 
 '''
 Fills a dictionary.
-Returns a dictionary with node ids as keys, and score as values.
+Returns a dictionary with node ids as keys, with the same values.
 '''
-def fill_dictionary(atkgraph, score):
-    scores = {}
+def fill_dictionary(atkgraph, value):
+    dict = {}
     for node in atkgraph:
-        scores[node['id']] = score
-    return scores
+        dict[node['id']] = value
+    return dict
 
-
-def fill_dictionary_came_from(atkgraph):
-    scores = {}
+'''
+Fills a dictionary.
+Returns a dictionary with node ids as keys, with empty list as the values.
+'''
+def fill_dictionary_with_empty_list(atkgraph):
+    dict = {}
     for node in atkgraph:
-        scores[node['id']] = list()
-    return scores
+        dict[node['id']] = list()
+    return dict
 
 '''
 Gets the neighbor nodes, aka the outgoing links to nodes, for all nodes in the attack graph.
@@ -101,8 +100,7 @@ Returns a dictionary with node ids as keys, and the parent_list as values.
 def get_costs_for_nodes(atkgraph):
     dict = {}
     for node in atkgraph:
-        #print(node)
-        if not node['ttc']==None: # for the attacker node, the ttc is None
+        if not node['ttc'] == None: # for the attacker node, the ttc is None
             dict[node['id']]=node['ttc']['cost'][0]
     return dict
 
@@ -134,32 +132,27 @@ def a_star(atkgraph, start_node, target_node):
     visited = set()
     visited.add(start_node)
 
-    #came_from = fill_dictionary(atkgraph, "")
-    came_from = fill_dictionary_came_from(atkgraph)
-    print("TRUE:", len(came_from.keys()))
+    came_from = fill_dictionary_with_empty_list(atkgraph)
 
-    g_score = fill_dictionary(atkgraph, 10000) # map with default value of Infinity
+    # g_score is a map with default value of infinity
+    g_score = fill_dictionary(atkgraph, 10000) 
     g_score[start_node] = 0
 
     h_score = fill_dictionary(atkgraph, 0)
 
-    # for node n, f_score[n] := g_score[n] + h(n). f_score[n] represents our current best guess as to
+    # for node n, f_score[n] = g_score[n] + h_score(n). f_score[n] represents our current best guess as to
     # how cheap a path could be from start to finish if it goes through n.
     f_score = fill_dictionary(atkgraph, 0) # map with default value of Infinity
     f_score[start_node] = h_score[start_node]
 
+    # calculate the h_score for all nodes
     '''
-    
     for node in atkgraph:
         if node['id'] == start_node:
             h_score[node['id']] = calculate_heuristic(node, node, atkgraph)  
         else:
             h_score[node['id']] = calculate_heuristic(node, atkgraph[-1], atkgraph)
     '''
-    #print("YEP")
-    #print("-"*100)
-    #print(h_score)
-    #print("-"*100)
 
     costs = get_costs_for_nodes(atkgraph)
     costs_copy = get_costs_for_nodes(atkgraph)
@@ -167,61 +160,35 @@ def a_star(atkgraph, start_node, target_node):
     parent_nodes = get_parent_nodes_for_and_nodes(atkgraph)
 
     current_node = start_node
-    i=0
     while len(open_set) > 0:
-        
-        print("OPEN SET        ",open_set)
-        #print("CAME FROM       ",came_from)
         # current_node is the node in open_set having the lowest f_score value
         current_score, current_node = heapq.heappop(open_set)
-        print("CURRENT NOOOODE:    ", current_node)
         visited.add(current_node)
 
         if current_node == target_node:
-            #print("Finished")
-           
-            '''
-            print(visited)
-            print(came_from)
-            print(current_node)
-            print(current_score)
-            print("COSTS: ", costs_copy)
-            '''
-            print("CURRENT SCORE      ", current_score)
-            
-            #print(came_from)
             return reconstruct_path(came_from, current_node, start_node, costs_copy)
 
         current_neighbors = neighbor_nodes[current_node]
-        print("CURRENT NEGHBORS:   ",current_neighbors)
-        #print(current_neighbors)
+       
         for neighbor in current_neighbors:  
-            print("HELLO   ",neighbor)  
-            i+=1
             tentative_g_score = g_score[current_node]+costs[neighbor]
             # try the neighbor node with a lower g_score than the previous node
             if tentative_g_score < g_score[neighbor]:
                 # if it is an 'or' node or if the and all parents to the 'and' node has been visited,
                 # continue to try this path
-                #print(found_a_path)
                 if all_parents_visited(atkgraph, neighbor, open_set, parent_nodes, visited):
-                    #came_from[neighbor] += current_node
-                    #print("TRUE:", came_from[neighbor])
-               
-                    
                     came_from[neighbor].append(current_node)
                     g_score[neighbor] = tentative_g_score
                     f_score[neighbor] = tentative_g_score + 0 #h_score[neighbor]
                     if neighbor not in open_set:
-                        heapq.heappush(open_set, (g_score[neighbor], neighbor))
+                        heapq.heappush(open_set, (f_score[neighbor], neighbor))
                 # if the node is an 'and' node, still update the node cost and keep track of the path
                 elif is_and_node(neighbor, parent_nodes):
-                    #costs[neighbor]=tentative_g_score
                     costs[neighbor]=tentative_g_score
-                    #came_from[neighbor]+=current_node
                     came_from[neighbor].append(current_node)
-                    #print("YEEES ADDING ",tentative_g_score)
 
-    # return false if the open set is empty but goal was never reached
-    return False 
+    print("\nHere is the list of visited nodes: \n")
+    print(visited)
+    return "Path not found"
+  
    
