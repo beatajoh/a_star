@@ -5,26 +5,26 @@ import random_path as random_path
 def main():
 
     # tests for: test_graphs/temp-scad.json
-    #file = "../test_graphs/temp-scad.json"
+    file = "../test_graphs/temp-scad.json"
 
     # start_node and target_node are the id attribute in the .json file
-    #start_node = "Attacker:6417249322885591:firstSteps"
+    start_node = "Attacker:6417249322885591:firstSteps"
 
     #target_node = "Application:7219598629313512:unsafeUserActivityConnect" # False
     #target_node = "Application:7219598629313512:softwareProductAbuse" # False
     #target_node = "Application:7219598629313512:fullAccessAfterSoftProdVulnerability" # False
-    #target_node = "SoftwareVulnerability:892728578927324:attemptAbuse" # cost = 24 # Path is not found????
+    target_node = "SoftwareVulnerability:892728578927324:attemptAbuse" # cost = 24 # Path is not found????
     #target_node = "Application:2213271547579497:denyFromConnectionRule" # cost = 21
     #target_node = "Application:7219598629313512:denyFromConnectionRule" # cost = 23
     #target_node = "Network:8176711980537409:successfulAccess" # cost = 4
 
     # tests for: test_graphs/real_graph.json
 
-    file = "../test_graphs/real_graph.json"
-    start_node = "Attacker:6417249322885591:firstSteps"
+    #file = "../test_graphs/real_graph.json"
+    #start_node = "Attacker:6417249322885591:firstSteps"
 
     # uncomment any of these lines:
-    target_node = "Network:8176711980537409:eavesdrop" # cost = 24
+    #target_node = "Network:8176711980537409:eavesdrop" # cost = 24
     #target_node = "Network:8176711980537409:accessNetworkData" # cost = 21
     #target_node = "Network:8176711980537409:eavesdrop" # cost = 27+4+7 (and)
     #target_node = "Application:2213271547579497:networkRequestConnect" # cost = 27
@@ -72,7 +72,6 @@ def get_parents_for_and_nodes(atkgraph):
                     
 
 # function for viewing the shortest path ?
-
 
 if __name__=='__main__':
      main()

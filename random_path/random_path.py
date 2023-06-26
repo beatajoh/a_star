@@ -121,38 +121,33 @@ def random_path(atkgraph, start_node, target_node):
     costs = get_costs_for_nodes(atkgraph)
     #neighbor_nodes[current_node][0]
     while current_node != target_node:
-        print("STACK: ", stack)
-        print("CURRENT NODE: ", current_node)
+       
         visited.add(current_node)
 
-  
-        # select a neighbor node which hasn't been visited yet
+        # all paths has been tried
         if len(stack) == 0: 
             break
+        # leaf in graph
         if len(neighbor_nodes[current_node]) == 0: 
-            print("Reached a leaf, so we need to continue from another place")
             current_node = stack.pop()
-            print("POPPED FROM STACK: ",current_node)
-            print("THE NEIGHBORS ",neighbor_nodes[current_node])
-                    
+    
+        # select a node from the neighbor list
         neighbor = random.choice(neighbor_nodes[current_node])
-        print("CHOICE:   ", neighbor)
 
+        # a node which has not been visited yet was selected
         if neighbor not in visited:
-            print("WHATINTHE")
             if all_parents_visited(neighbor, parent_nodes, visited):
-                print("YES ADD THIS NODE TO THE PATH")
                 visited.add(neighbor)
                 came_from[neighbor].append(current_node)
                 stack.append(current_node)
                 current_node = neighbor
             else: 
-                print("found and node, so start from another place")
+                # 'and' node was found
                 current_node = stack.pop()
                 continue
-        elif neighbor in visited: # if we selected a node which has been visited
-            print("HALLLOOOOOOOOO GO BAAAAAACK")
-            # if we have tried all paths forward, move backwards again
+        # a node which has been visited previously was selected
+        elif neighbor in visited:
+            # if we have tried all paths forward already , move to previous node in path
             if all_neighbors_visited(neighbor_nodes, current_node, visited):
                 current_node = stack.pop()
     
