@@ -9,8 +9,3 @@ To test:
 - run: python main.py
 
 The test_graphs directory contains some test files and a copy (with 'parent' links for and nodes) should be written to the test_graph/atkgraph.json file
-
-## Random path 
-
-To test:
-- run: python main.py
