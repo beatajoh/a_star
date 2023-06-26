@@ -1,13 +1,14 @@
 # shortest path and random path
 
-## Shortest path
-a* implementation with and nodes.
+Shortest path implementation with a* with and node logic.
+
+Random path (option 1)
 
 To test:
-- Go to shortest_path
+- clone the repository
 - run: python main.py
 
-The small_graph.json/small_graph_2.json are some test files and a copy (with 'parent' links for and nodes) should be written to the atkgraph.json file.
+The test_graphs directory contains some test files and a copy (with 'parent' links for and nodes) should be written to the test_graph/atkgraph.json file
 
 ## Random path 
 
