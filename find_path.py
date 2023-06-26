@@ -247,9 +247,7 @@ def random_path(atkgraph, start_node, target_node):
     
     path = reconstruct_path(came_from, current_node, start_node, costs, set())
     print("Real cost: ", cost)
-
-    for key in came_from.keys():
-        print(came_from[key])
+    print("Visited nodes: ", visited)
 
     return path
   
