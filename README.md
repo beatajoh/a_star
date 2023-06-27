@@ -1,3 +1,5 @@
+**Note to andrei: look at find_path.py, a_star() function.**
+
 # shortest path and random path
 
 Shortest path implementation with a* with and node logic.
