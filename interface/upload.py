@@ -29,6 +29,6 @@ def upload_json_to_neo4j_database(file, graph):   # add file as argument
             if link in nodes.keys():
                 from_node = nodes[node["id"]]
                 to_node = nodes[link]
-                relationship = Relationship(from_node, "RELATIONSHIP_TYPE", to_node)
+                relationship = Relationship(from_node, "Relationship", to_node)
                 graph.create(relationship)
 

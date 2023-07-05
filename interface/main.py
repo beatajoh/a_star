@@ -1,6 +1,7 @@
 import json
 import attack_simulations as atksim
 import upload as upload_json_to_neo4j
+import node as node
 from py2neo import Graph, Node, Relationship
 
 
@@ -28,23 +29,16 @@ step_by_step_attack_commands = {
     }
 
 action_commands = {
-    "1": "lowest cost",
-    "2": "random",
-    "3": "enter node id"
+    "1": "enter node id"
     }
 
 attack_simulation_commands = {
     "1": "shortest-path-dijkstra",
     "2": "shortest-path-AO-star",
     "3": "random-path",
-    "4": "attack-range"
+    "4": "attack-range",
+    "5": "exit"
     }
-
-def update_horizon(node, horizon, index):
-    for link in index[node]['links']:
-        horizon.add(link)
-    return horizon
-
 
 def step_by_step_attack_simulation(graph, atkgraph, index):
     print(f"{console_colors.HEADER}step-by-step-attack{console_colors.ENDC}")
@@ -68,26 +62,18 @@ def step_by_step_attack_simulation(graph, atkgraph, index):
         if command == '1':
             print_horizon(horizon)
         elif command == '2':
-            # choose next node name to visit
-            print_options(action_commands)
-            command = input("choose: ")
-            if command == '1':
-                print("random option")
-                attack_node = ""    # TODO
-            elif command == '2':
-                print("shortest path option")
-                attack_node ==""    # TODO
-            elif command == '3':
-                dict = print_horizon_w_commands(horizon)
-                print_options(dict)
-                option = input("choose node to attack: ")
-                attack_node = dict[int(option)]
+            # choose next node name to visit       
+            dict = print_horizon_w_commands(horizon)
+            print_options(dict)
+            option = input("choose node to attack: ")
+            attack_node = dict[int(option)]
 
             # update horizon
             if attack_node in horizon:
                 visited.add(attack_node)
                 horizon.remove(attack_node)
                 horizon = update_horizon(attack_node, horizon, index)
+                print_horizon(horizon)
 
             # store the path and horizon to file
             file = 'temp.json' 
@@ -107,6 +93,11 @@ def add_horizon_nodes_to_json_file(file, horizon, index):
             data.append(node)
     with open(file, 'w', encoding='utf-8') as writefile:
         json.dump(data, writefile, indent=4)
+
+def update_horizon(node, horizon, index):
+    for link in index[node]['links']:
+        horizon.add(link)
+    return horizon
 
 def add_nodes_to_json_file(file, visited, index):
     data = [] 
@@ -128,7 +119,7 @@ def print_horizon_w_commands(horizon):
 def print_horizon(horizon):
     print(f"{console_colors.FAIL}Attacker Horizon{console_colors.ENDC}")
     for node in horizon:
-        print(" "*12, node)
+        print(node)
 
 
 def get_parents_for_and_nodes(atkgraph):
@@ -160,36 +151,43 @@ def attack_simulation(graph, atkgraph, index):
         print_options(attack_simulation_commands)
 
         command = input("choose: ")
-        start_node = atkgraph[-1]['id']
+        #start_node = atkgraph[-1]['id']
+        start_node = "AApplication7219598629313512read"
+        target_node = "HApplication7219598629313512networkRequestConnect"
 
         if command == '1':
-            print("DIJKSTRA")
-            target_node = input("enter target node id: ")
-            path = atksim.dijkstra(atkgraph, start_node, target_node)
-            print("PATH:  ", path[0])   # TODO path[0] for paths with 'and' nodes is not yet implemented
-            print("COST:  ", path[1])
+            print("shortest-path-dijkstra")
+            #target_node = input("enter target node id: ")
+            result = atksim.dijkstra(atkgraph, start_node, target_node, index)
         elif command == '2':
-            print("AO_Star")
+            print("shortest-path-AO-star")
             target_node = input("enter target node id: ")
             path, cost = atksim.ao_star(atkgraph, target_node)
             print("PATH: ", path)
             print("COST: ", cost)
         elif command == '3':
+            print("random path")
+            #target_node = input("enter target node id: ")
+            result = atksim.random_path(atkgraph, start_node, target_node, index)
             print("RANDOM PATH")
             start_node = atkgraph[-1]['id']
             target_node = input("enter target node id: ")
             path = atksim.random_path(atkgraph, start_node, target_node)
             print("PATH:  ", path)
         elif command == '4':
+            print("attack range")
+        elif command == '5':
             break
-
-        '''
-        # store the path and horizon to file
-        file = 'temp.json'
-        add_nodes_to_json_file(file, path[0], index)  # also add attacker horizon here?
-        upload_json_to_neo4j.upload_json_to_neo4j_database(file, graph)
-        '''
-           
+        
+        if not isinstance(result, str):
+            total_cost = result[1]
+            path = result[2]
+            add_nodes_to_json_file("attack_simulation.json", path.keys(), path)
+            upload_json_to_neo4j.upload_json_to_neo4j_database("attack_simulation.json", graph)
+            print("TOTAL COST:  ", total_cost)
+        else:
+            print(result)
+       
 
 def index_nodes_by_id(atkgraph):
     dict = {}
