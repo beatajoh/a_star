@@ -34,21 +34,26 @@ def is_and_node(node, parent_nodes):
 '''
 Reconstructs the path found by the Dijkstra function and calculates the total cost for the path.
 '''
-def reconstruct_path(came_from, current, start_node, costs, visited=set()):
+def reconstruct_path(came_from, current, start_node, costs, index, visited=set()):
+
     cost = 0
     total_path=[]
     if current != start_node:
         total_path = [current]
+    
+
         # reconstruct the path until the start node is reached
         while current in came_from.keys() and current != start_node:
+            
             old_current = current
-            current = came_from[current] 
+            current = came_from[current] # link from current -> old_current
             # condition for 'and' node       
             if len(current)>1:
                 for node in current:
-                    path, costt = reconstruct_path(came_from, node, start_node, costs, visited)
+                    path, costt, x = reconstruct_path(came_from, node, start_node, costs, index, visited)
                     total_path.insert(0,path)
                     cost += costt+costs[old_current]
+                    index[path[-1]]["links"].append(old_current)
                 break
             else:
                 current = current[0]
@@ -57,35 +62,9 @@ def reconstruct_path(came_from, current, start_node, costs, visited=set()):
                     cost += costs[old_current]
                     visited.add(old_current)
                 total_path.insert(0,current)
-    return total_path, cost
-
-
-'''
-def reconstruct_path(came_from, current, start_node, costs, visited=set()):
-    cost = 0
-    total_path=[]
-    if current != start_node:
-        total_path = [current]
-        # reconstruct the path until the start node is reached
-        while current in came_from.keys() and current != start_node:
-            old_current = current
-            current = came_from[current] 
-            # condition for 'and' node       
-            if len(current)>1:
-                for node in current:
-                    path, costt = reconstruct_path(came_from, node, start_node, costs, visited)
-                    total_path.insert(0,path)
-                    cost += costt+costs[old_current]
-            else:
-                current = current[0]
-                # update cost for all nodes once
-                if old_current not in visited:
-                    cost += costs[old_current]
-                    visited.add(old_current)
-                total_path.insert(0,current)
-    print(total_path)
-    return total_path, cost
-'''
+                if old_current not in index[current]["links"]:
+                    index[current]["links"].append(old_current) 
+    return total_path, cost, index
 
 '''
 Returns a list of node ids.
@@ -141,7 +120,7 @@ def get_costs_for_nodes(atkgraph):
 '''
 Finds the shortest path with Dijkstra algorithm, with added conditions for handling the 'and' nodes.
 '''
-def dijkstra(atkgraph, start_node, target_node):
+def dijkstra(atkgraph, start_node, target_node, index):
     node_ids = get_node_ids(atkgraph)
 
     open_set = []
@@ -178,7 +157,9 @@ def dijkstra(atkgraph, start_node, target_node):
         visited.add(current_node)
 
         if current_node == target_node:
-            return reconstruct_path(came_from, current_node, start_node, costs_copy, set())
+            for key in index.keys():        #remove
+                index[key]["links"] = []    #remove
+            return reconstruct_path(came_from, current_node, start_node, costs_copy, index, set())
 
         current_neighbors = neighbor_nodes[current_node]
        
@@ -204,7 +185,7 @@ def dijkstra(atkgraph, start_node, target_node):
 ''' 
 calculate the random path (according to option 1)
 '''
-def random_path(atkgraph, start_node, target_node):
+def random_path(atkgraph, start_node, target_node, index):
     node_ids = get_node_ids(atkgraph)
 
     visited = set()  # Store the IDs of visited nodes to avoid revisiting them
@@ -252,7 +233,7 @@ def random_path(atkgraph, start_node, target_node):
             if all_neighbors_visited(neighbor_nodes, current_node, visited):
                 current_node = stack.pop()
     
-    path = reconstruct_path(came_from, current_node, start_node, costs, set())
+    path = reconstruct_path(came_from, current_node, start_node, costs, index, set())
     print("Real cost: ", cost)
     print("Visited nodes: ", visited)
 

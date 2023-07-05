@@ -154,16 +154,20 @@ def attack_simulation(graph, atkgraph, index):
         start_node = atkgraph[-1]['id']
 
         if command == '1':
-            print("DIJKSTRA")
-            target_node = input("enter target node id: ")
-            path = atksim.dijkstra(atkgraph, start_node, target_node)
+            start_node = "AApplication7219598629313512read"
+            target_node = "EApplication7219598629313512fullAccess" #"FApplication7219598629313512networkRequestConnect"
+            print("shortest-path-dijkstra")
+            #target_node = input("enter target node id: ")
+            path = atksim.dijkstra(atkgraph, start_node, target_node, index)
             print("PATH:  ", path[0])   # TODO path[0] for paths with 'and' nodes is not yet implemented
             print("COST:  ", path[1])
+        
+            add_nodes_to_json_file("shortest_path.json", path[2].keys(), path[2])
+            upload_json_to_neo4j.upload_json_to_neo4j_database("shortest_path.json", graph)
         elif command == '2':
             print("RANDOM PATH")
-            start_node = atkgraph[-1]['id']
             target_node = input("enter target node id: ")
-            path = atksim.random_path(atkgraph, start_node, target_node)
+            path = atksim.random_path(atkgraph, start_node, target_node, index)
             print("PATH:  ", path)
         elif command == '3':
             break
@@ -194,8 +198,8 @@ def main():
     print(f"{console_colors.HEADER}Attack Simulation Interface{console_colors.ENDC}")
 
     # attack graph file (.json)
-    file = "../test_graphs/real_graph.json"
-    #file = "../test_graphs/small_graph_2.json"
+    #file = "../test_graphs/real_graph.json"
+    file = "../test_graphs/small_graph_2.json"
 
     # load the attack graph
     with open(file, 'r') as readfile:
