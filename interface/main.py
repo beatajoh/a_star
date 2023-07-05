@@ -34,8 +34,10 @@ action_commands = {
 
 attack_simulation_commands = {
     "1": "shortest-path-dijkstra",
-    "2": "random-path",
-    "3": "exit"
+    "2": "shortest-path-AO-star",
+    "3": "random-path",
+    "4": "attack-range",
+    "5": "exit"
     }
 
 def step_by_step_attack_simulation(graph, atkgraph, index):
@@ -158,10 +160,23 @@ def attack_simulation(graph, atkgraph, index):
             #target_node = input("enter target node id: ")
             result = atksim.dijkstra(atkgraph, start_node, target_node, index)
         elif command == '2':
+            print("shortest-path-AO-star")
+            target_node = input("enter target node id: ")
+            path, cost = atksim.ao_star(atkgraph, target_node)
+            print("PATH: ", path)
+            print("COST: ", cost)
+        elif command == '3':
             print("random path")
             #target_node = input("enter target node id: ")
             result = atksim.random_path(atkgraph, start_node, target_node, index)
-        elif command == '3':
+            print("RANDOM PATH")
+            start_node = atkgraph[-1]['id']
+            target_node = input("enter target node id: ")
+            path = atksim.random_path(atkgraph, start_node, target_node)
+            print("PATH:  ", path)
+        elif command == '4':
+            print("attack range")
+        elif command == '5':
             break
         
         if not isinstance(result, str):
