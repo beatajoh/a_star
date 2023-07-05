@@ -119,7 +119,7 @@ def print_horizon_w_commands(horizon):
 def print_horizon(horizon):
     print(f"{console_colors.FAIL}Attacker Horizon{console_colors.ENDC}")
     for node in horizon:
-        print(" "*12, node)
+        print(node)
 
 
 def get_parents_for_and_nodes(atkgraph):
