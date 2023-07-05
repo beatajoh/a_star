@@ -35,8 +35,9 @@ action_commands = {
 
 attack_simulation_commands = {
     "1": "shortest-path-dijkstra",
-    "2": "random-path",
-    "3": "attack-range"
+    "2": "shortest-path-AO-star",
+    "3": "random-path",
+    "4": "attack-range"
     }
 
 def update_horizon(node, horizon, index):
@@ -168,12 +169,18 @@ def attack_simulation(graph, atkgraph, index):
             print("PATH:  ", path[0])   # TODO path[0] for paths with 'and' nodes is not yet implemented
             print("COST:  ", path[1])
         elif command == '2':
+            print("AO_Star")
+            target_node = input("enter target node id: ")
+            path, cost = atksim.ao_star(atkgraph, target_node)
+            print("PATH: ", path)
+            print("COST: ", cost)
+        elif command == '3':
             print("RANDOM PATH")
             start_node = atkgraph[-1]['id']
             target_node = input("enter target node id: ")
             path = atksim.random_path(atkgraph, start_node, target_node)
             print("PATH:  ", path)
-        elif command == '3':
+        elif command == '4':
             break
 
         '''
