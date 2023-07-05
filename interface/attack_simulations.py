@@ -3,7 +3,7 @@ import json
 from collections import deque
 import heapq
 import random
-
+import re
 '''
 Discovers if the node is an 'and' or 'or' node.
 If the node is an 'or' node, the function returns True.
@@ -215,7 +215,7 @@ def Cost(H, condition, weight):
     if 'AND' in condition:
         AND_nodes = condition['AND']
         Path_A = ' AND '.join(AND_nodes)
-        PathA = max(H[node]+weight[node] for node in AND_nodes)  # Calculate the maximum cost instead of summing
+        PathA = sum(H[node]+weight[node] for node in AND_nodes)
         cost[Path_A] = PathA
 
     if 'OR' in condition:
@@ -237,8 +237,6 @@ def update_cost(H, Conditions, weight):
         condition = Conditions[key]
         print(key,':', Conditions[key],'>>>', Cost(H, condition, weight))
         c = Cost(H, condition, weight)
-        if c:
-            H[key] = min(c.values())
         least_cost[key] = Cost(H, condition, weight)
     return least_cost
 
@@ -254,47 +252,48 @@ AO * Shortest path function
 '''
 def shortest_path_ao_star(Start, Updated_cost, H):
     Path = Start
-    total_cost = H[Start]  # Initialize total cost with the cost of the starting node
-
     if Start in Updated_cost.keys():
         values = Updated_cost[Start].values()
         if values:
             Min_cost = min(values)
             key = list(Updated_cost[Start].keys())
             Index = list(Updated_cost[Start].values()).index(Min_cost)
-
             Next = key[Index].split()
-
             if len(Next) == 1:
                 Start = Next[0]
-                path, cost = shortest_path_ao_star(Start, Updated_cost, H)
+                path = shortest_path_ao_star(Start, Updated_cost, H)
                 Path += '<--' + path
-                total_cost = H[Start] + cost  # Corrected line
             else:
                 if "AND" in Next:
                     Path += '<--(' + key[Index] + ') ['
-                    and_costs = []  # Initialize a list to store costs for AND nodes
                     for i in range(len(Next)):
                         if Next[i] == "AND":
                             continue
                         Start = Next[i]
-                        path, cost = shortest_path_ao_star(Start, Updated_cost, H)
+                        path = shortest_path_ao_star(Start, Updated_cost, H)
                         Path += path
-                        total_cost += cost
-                        and_costs.append(cost)  # Store costs for AND nodes
                         if i < len(Next) - 1:
                             Path += ' + '
                     Path += ']'
-                    if len(and_costs) > 1:
-                        total_cost -= sum(and_costs) - min(and_costs)  # Subtract the sum of AND node costs except the minimum
                 else:
                     Path += '<--(' + key[Index] + ') '
                     Start = Next[0]
-                    path, cost = shortest_path_ao_star(Start, Updated_cost, H)
+                    path = shortest_path_ao_star(Start, Updated_cost, H)
                     Path += path
-                    total_cost = H[Start] + cost  # Corrected line
 
-    return Path, total_cost
+    return Path
+
+def calculate_shortest_path_cost(shortest_path_str, cost, heuristics):
+    nodes = re.findall(r'\b\w+\b', shortest_path_str)
+    total_cost = 0
+    visited = set()
+
+    for node in nodes:
+        if node not in ['AND', 'OR'] and node not in visited:
+            total_cost += cost[node] + heuristics[node]
+            visited.add(node)
+
+    return total_cost
 
 '''
 Finds the shortest path with Dijkstra algorithm, with added conditions for handling the 'and' nodes.
@@ -424,6 +423,7 @@ def ao_star(atkgraph, target_node):
     and_nodes = get_and_nodes(atkgraph)
     adjacency_list = get_adjacency_list(atkgraph, and_nodes)
     Updated_cost = update_cost(H, adjacency_list, weight)
-    shortest_path_str, total_cost = shortest_path_ao_star(target_node, Updated_cost, H)
+    shortest_path_str = shortest_path_ao_star(target_node, Updated_cost, H)
+    total_cost = calculate_shortest_path_cost(shortest_path_str, weight, H)
 
     return shortest_path_str, total_cost
