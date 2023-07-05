@@ -35,7 +35,7 @@ action_commands = {
 attack_simulation_commands = {
     "1": "shortest-path-dijkstra",
     "2": "random-path",
-    "3": "attack-range"
+    "3": "exit"
     }
 
 def step_by_step_attack_simulation(graph, atkgraph, index):
@@ -151,7 +151,7 @@ def attack_simulation(graph, atkgraph, index):
         command = input("choose: ")
         #start_node = atkgraph[-1]['id']
         start_node = "AApplication7219598629313512read"
-        target_node = "EApplication7219598629313512fullAccess"#"HApplication7219598629313512networkRequestConnect"
+        target_node = "HApplication7219598629313512networkRequestConnect"
 
         if command == '1':
             print("shortest-path-dijkstra")
@@ -163,14 +163,16 @@ def attack_simulation(graph, atkgraph, index):
             result = atksim.random_path(atkgraph, start_node, target_node, index)
         elif command == '3':
             break
-
-        total_cost = result[1]
-        path = result[2]
-        add_nodes_to_json_file("attack_simulation.json", path.keys(), path)
-        upload_json_to_neo4j.upload_json_to_neo4j_database("attack_simulation.json", graph)
-        print("TOTAL COST:  ", total_cost)
+        
+        if not isinstance(result, str):
+            total_cost = result[1]
+            path = result[2]
+            add_nodes_to_json_file("attack_simulation.json", path.keys(), path)
+            upload_json_to_neo4j.upload_json_to_neo4j_database("attack_simulation.json", graph)
+            print("TOTAL COST:  ", total_cost)
+        else:
+            print(result)
        
-           
 
 def index_nodes_by_id(atkgraph):
     dict = {}

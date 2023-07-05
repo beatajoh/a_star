@@ -166,13 +166,14 @@ def random_path(atkgraph, start_node, target_node, index):
 
     current_node = start_node
     while current_node != target_node:
-        links = index[current_node]["links"]
+        links = index[current_node]['links']
         # all paths has been tried
         if len(stack) == 0: 
             return "Path not found"
         # leaf in graph     
         if len(links) == 0:
             current_node = stack.pop()
+            links = index[current_node]['links']
     
         # select a node from the link list
         neighbor = random.choice(links)
@@ -181,25 +182,23 @@ def random_path(atkgraph, start_node, target_node, index):
         if neighbor not in visited:
             if all_parents_visited(neighbor, visited, index):
                 came_from[neighbor].append(current_node)
-                stack.append(current_node)
                 current_node = neighbor
+                stack.append(current_node)
                 visited.add(neighbor)
                 cost+=costs[current_node]
-            else: 
-                # 'and' node was found
-                current_node = stack.pop()
+                if is_and_node(neighbor, index):
+                    came_from[neighbor] = index[neighbor]["parent_list"]
+            elif len(links)>1 and not all_neighbors_visited(links, visited):
                 continue
-        # a node which has been visited previously was selected
-        elif neighbor in visited:
-            # if we have tried all paths forward already, move to previous node in path
-            if all_neighbors_visited(links, visited):
+            else:
+                # temporarily unreachable 'and' node was found
                 current_node = stack.pop()
+    
     
     for key in index.keys():    
         index[key]["links"] = [] 
     path = reconstruct_path(came_from, current_node, start_node, costs, index, set())
-    #print("Real cost: ", cost)
-    print("PATH ", path[0])
+    
 
     return path  
    
