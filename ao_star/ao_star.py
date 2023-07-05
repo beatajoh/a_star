@@ -1,5 +1,6 @@
 import json
 from collections import deque
+import re
 
 # Cost to find the AND and OR path
 def Cost(H, condition, weight):
@@ -7,7 +8,7 @@ def Cost(H, condition, weight):
     if 'AND' in condition:
         AND_nodes = condition['AND']
         Path_A = ' AND '.join(AND_nodes)
-        PathA = max(H[node]+weight[node] for node in AND_nodes)  # Calculate the maximum cost instead of summing
+        PathA = sum(H[node]+weight[node] for node in AND_nodes)
         cost[Path_A] = PathA
 
     if 'OR' in condition:
@@ -28,9 +29,6 @@ def update_cost(H, Conditions, weight):
     for key in Main_nodes:
         condition = Conditions[key]
         print(key,':', Conditions[key],'>>>', Cost(H, condition, weight))
-        c = Cost(H, condition, weight)
-        if c:
-            H[key] = min(c.values())
         least_cost[key] = Cost(H, condition, weight)
     return least_cost
 
@@ -109,17 +107,15 @@ def get_heuristics_for_nodes(atkgraph, target_node):
     # Perform Breadth-First Search (BFS) from the target node
     queue = deque([(target_node, 0)])  # Start BFS from the target node with distance 0
     visited = set([target_node])  # Keep track of visited nodes
-    
+
     while queue:
         node, distance = queue.popleft()
         heuristics[node] = distance  # Assign the distance as the heuristic value
-        
         # Explore the neighbors of the current node
         for other_node in atkgraph:
             if other_node['id'] == node:
                 parent_list = other_node['parent_list']
-                break
-        
+                break    
         for parent in parent_list:
             if parent not in visited:
                 visited.add(parent)
@@ -128,78 +124,87 @@ def get_heuristics_for_nodes(atkgraph, target_node):
     return heuristics
 
 
-def shortest_path(Start, Updated_cost, H):
+def shortest_path_ao_star(Start, Updated_cost, H):
     Path = Start
-    total_cost = H[Start]  # Initialize total cost with the cost of the starting node
-
     if Start in Updated_cost.keys():
         values = Updated_cost[Start].values()
         if values:
             Min_cost = min(values)
             key = list(Updated_cost[Start].keys())
             Index = list(Updated_cost[Start].values()).index(Min_cost)
-
             Next = key[Index].split()
-
             if len(Next) == 1:
                 Start = Next[0]
-                path, cost = shortest_path(Start, Updated_cost, H)
+                path = shortest_path_ao_star(Start, Updated_cost, H)
                 Path += '<--' + path
-                total_cost = H[Start] + cost  # Corrected line
             else:
                 if "AND" in Next:
                     Path += '<--(' + key[Index] + ') ['
-                    and_costs = []  # Initialize a list to store costs for AND nodes
                     for i in range(len(Next)):
                         if Next[i] == "AND":
                             continue
                         Start = Next[i]
-                        path, cost = shortest_path(Start, Updated_cost, H)
+                        path = shortest_path_ao_star(Start, Updated_cost, H)
                         Path += path
-                        total_cost += cost
-                        and_costs.append(cost)  # Store costs for AND nodes
                         if i < len(Next) - 1:
                             Path += ' + '
                     Path += ']'
-                    if len(and_costs) > 1:
-                        total_cost -= sum(and_costs) - min(and_costs)  # Subtract the sum of AND node costs except the minimum
                 else:
                     Path += '<--(' + key[Index] + ') '
                     Start = Next[0]
-                    path, cost = shortest_path(Start, Updated_cost, H)
+                    path = shortest_path_ao_star(Start, Updated_cost, H)
                     Path += path
-                    total_cost = H[Start] + cost  # Corrected line
 
-    return Path, total_cost
+    return Path
+
+def calculate_shortest_path_cost(shortest_path_str, cost, heuristics):
+    nodes = re.findall(r'\b\w+\b', shortest_path_str)
+    total_cost = 0
+    visited = set()
+
+    for node in nodes:
+        if node not in ['AND', 'OR'] and node not in visited:
+            total_cost += cost[node] + heuristics[node]
+            visited.add(node)
+
+    return total_cost
 
 
+# H = {'H': 0, 'E': 1, 'C': 2, 'F': 2, 'B': 3, 'D': 3, 'A': 4, 'G': 4}
 
-# H = {'B': 0, 'C': 0, 'F': 0, 'D': 0, 'A': 0, 'E': 0, 'G': 0}
 
-with open("atkgraph.json", 'r') as readfile:
+# with open("atkgraph.json", 'r') as readfile:
+#     atkgraph=json.load(readfile)
+with open("../test_graphs/small_graph_2.json", 'r') as readfile:
     atkgraph=json.load(readfile)
 
 atkgraph = get_parents_for_and_nodes(atkgraph)
 
-with open("atkgraph.json", 'w', encoding='utf-8') as writefile:
+
+# with open("atkgraph.json", 'w', encoding='utf-8') as writefile:
+#     json.dump(atkgraph, writefile, indent=4)
+with open("../test_graphs/small_graph_2.json", 'w', encoding='utf-8') as writefile:
     json.dump(atkgraph, writefile, indent=4)
 
 target_node = 'H'  
 H = get_heuristics_for_nodes(atkgraph, target_node)
 print('Heuristics: ',H)
 weight = get_costs_for_nodes(atkgraph)
-print("="*100)
+print("="*150)
 print('Cost: ', weight)
 and_nodes = get_and_nodes(atkgraph)
 
 adjacency_list = get_adjacency_list(atkgraph, and_nodes)
-print("-"*100)
+print("-"*150)
 print('Adjacency list: ', adjacency_list)
-print("="*100)
+print("="*150)
 Updated_cost = update_cost(H, adjacency_list, weight)
-print("!"*100)
+print("-"*150)
 print('Updated costs: ', Updated_cost)
-print("*"*100)
-shortest_path_str, total_cost = shortest_path(target_node, Updated_cost, H)
+print("*"*150)
+shortest_path_str = shortest_path_ao_star(target_node, Updated_cost, H)
 print('Shortest Path:\n', shortest_path_str)
+
+total_cost = calculate_shortest_path_cost(shortest_path_str, weight, H)
 print('Total Cost:', total_cost)
+
