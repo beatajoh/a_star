@@ -8,6 +8,9 @@ def upload_json_to_neo4j_database(file, graph):   # add file as argument
     with open(file, 'r') as file:
         data = json.load(file)
     for node in data:
+        costt = 0
+        if node["ttc"] != None:
+            costt = node["ttc"]["cost"][0]
         # build Node object
         node_obj = Node(
             str(node["horizon"]),
@@ -18,7 +21,8 @@ def upload_json_to_neo4j_database(file, graph):   # add file as argument
             atkname=node["atkname"],
             is_traversable=node["is_traversable"],
             is_reachable=node["is_reachable"],
-            graph_type = "attackgraph"
+            graph_type = "attackgraph",
+            cost = costt
         )
         graph.create(node_obj)
         nodes[node["id"]] = node_obj

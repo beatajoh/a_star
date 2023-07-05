@@ -36,7 +36,7 @@ attack_simulation_commands = {
     "1": "shortest-path-dijkstra",
     "2": "shortest-path-AO-star",
     "3": "random-path",
-    "4": "attack-range",
+    "4": "attack-range-BFS",
     "5": "exit"
     }
 
@@ -151,40 +151,45 @@ def attack_simulation(graph, atkgraph, index):
         print_options(attack_simulation_commands)
 
         command = input("choose: ")
-        #start_node = atkgraph[-1]['id']
-        start_node = "AApplication7219598629313512read"
-        target_node = "HApplication7219598629313512networkRequestConnect"
+        start_node = atkgraph[-1]['id']
+    
 
         if command == '1':
-            print("shortest-path-dijkstra")
+            print("shortest path dijkstra")
+            start_node = "AApplication7219598629313512read"
+            target_node = "HApplication7219598629313512networkRequestConnect"
             #target_node = input("enter target node id: ")
             result = atksim.dijkstra(atkgraph, start_node, target_node, index)
         elif command == '2':
-            print("shortest-path-AO-star")
+            print("shortest path AO star")
             target_node = input("enter target node id: ")
             path, cost = atksim.ao_star(atkgraph, target_node)
-            print("PATH: ", path)
-            print("COST: ", cost)
+            print("cost: ", cost)
         elif command == '3':
             print("random path")
+            start_node = "AApplication7219598629313512read"
+            target_node = "HApplication7219598629313512networkRequestConnect"
             #target_node = input("enter target node id: ")
             result = atksim.random_path(atkgraph, start_node, target_node, index)
-            print("RANDOM PATH")
-            start_node = atkgraph[-1]['id']
-            target_node = input("enter target node id: ")
-            path = atksim.random_path(atkgraph, start_node, target_node)
-            print("PATH:  ", path)
+            total_cost = result[1]
+            path = result[2]
         elif command == '4':
-            print("attack range")
+            print("attack range BFS")
+            limit = 50
+            result = atksim.bfs(atkgraph, start_node, index, limit)
         elif command == '5':
             break
         
-        if not isinstance(result, str):
+        if not isinstance(result, str) and command in ['1','3']:
             total_cost = result[1]
             path = result[2]
             add_nodes_to_json_file("attack_simulation.json", path.keys(), path)
             upload_json_to_neo4j.upload_json_to_neo4j_database("attack_simulation.json", graph)
-            print("TOTAL COST:  ", total_cost)
+            print("cost: ", total_cost)
+        if not isinstance(result, str) and command in ['4']:
+            add_nodes_to_json_file("attack_simulation.json", result.keys(), index)
+            upload_json_to_neo4j.upload_json_to_neo4j_database("attack_simulation.json", graph)
+
         else:
             print(result)
        
@@ -207,8 +212,8 @@ def main():
     print(f"{console_colors.HEADER}Attack Simulation Interface{console_colors.ENDC}")
 
     # attack graph file (.json)
-    #file = "../test_graphs/real_graph.json"
-    file = "../test_graphs/small_graph_2.json"
+    file = "../test_graphs/real_graph.json"
+    #file = "../test_graphs/small_graph_2.json"
 
     # load the attack graph
     with open(file, 'r') as readfile:
