@@ -1,6 +1,7 @@
 import json
 import attack_simulations as atksim
 import upload as upload_json_to_neo4j
+import node as node
 from py2neo import Graph, Node, Relationship
 
 
@@ -27,10 +28,9 @@ step_by_step_attack_commands = {
     "3": "exit"
     }
 
+# 
 action_commands = {
-    "1": "lowest cost",
-    "2": "random",
-    "3": "enter node id"
+    "1": "enter node id"
     }
 
 attack_simulation_commands = {
@@ -71,12 +71,6 @@ def step_by_step_attack_simulation(graph, atkgraph, index):
             print_options(action_commands)
             command = input("choose: ")
             if command == '1':
-                print("random option")
-                attack_node = ""    # TODO
-            elif command == '2':
-                print("shortest path option")
-                attack_node ==""    # TODO
-            elif command == '3':
                 dict = print_horizon_w_commands(horizon)
                 print_options(dict)
                 option = input("choose node to attack: ")
@@ -202,8 +196,8 @@ def main():
     print(f"{console_colors.HEADER}Attack Simulation Interface{console_colors.ENDC}")
 
     # attack graph file (.json)
-    #file = "../test_graphs/real_graph.json"
-    file = "../test_graphs/small_graph_2.json"
+    file = "../test_graphs/real_graph.json"
+    #file = "../test_graphs/small_graph_2.json"
 
     # load the attack graph
     with open(file, 'r') as readfile:
