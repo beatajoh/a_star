@@ -28,7 +28,6 @@ step_by_step_attack_commands = {
     "3": "exit"
     }
 
-# 
 action_commands = {
     "1": "enter node id"
     }
@@ -38,12 +37,6 @@ attack_simulation_commands = {
     "2": "random-path",
     "3": "attack-range"
     }
-
-def update_horizon(node, horizon, index):
-    for link in index[node]['links']:
-        horizon.add(link)
-    return horizon
-
 
 def step_by_step_attack_simulation(graph, atkgraph, index):
     print(f"{console_colors.HEADER}step-by-step-attack{console_colors.ENDC}")
@@ -99,6 +92,11 @@ def add_horizon_nodes_to_json_file(file, horizon, index):
     with open(file, 'w', encoding='utf-8') as writefile:
         json.dump(data, writefile, indent=4)
 
+def update_horizon(node, horizon, index):
+    for link in index[node]['links']:
+        horizon.add(link)
+    return horizon
+
 def add_nodes_to_json_file(file, visited, index):
     data = [] 
     with open(file, 'w', encoding='utf-8') as writefile:
@@ -151,33 +149,27 @@ def attack_simulation(graph, atkgraph, index):
         print_options(attack_simulation_commands)
 
         command = input("choose: ")
-        start_node = atkgraph[-1]['id']
+        #start_node = atkgraph[-1]['id']
+        start_node = "AApplication7219598629313512read"
+        target_node = "EApplication7219598629313512fullAccess"#"HApplication7219598629313512networkRequestConnect"
 
         if command == '1':
-            start_node = "AApplication7219598629313512read"
-            target_node = "EApplication7219598629313512fullAccess" #"FApplication7219598629313512networkRequestConnect"
             print("shortest-path-dijkstra")
             #target_node = input("enter target node id: ")
-            path = atksim.dijkstra(atkgraph, start_node, target_node, index)
-            print("PATH:  ", path[0])   # TODO path[0] for paths with 'and' nodes is not yet implemented
-            print("COST:  ", path[1])
-        
-            add_nodes_to_json_file("shortest_path.json", path[2].keys(), path[2])
-            upload_json_to_neo4j.upload_json_to_neo4j_database("shortest_path.json", graph)
+            result = atksim.dijkstra(atkgraph, start_node, target_node, index)
         elif command == '2':
-            print("RANDOM PATH")
-            target_node = input("enter target node id: ")
-            path = atksim.random_path(atkgraph, start_node, target_node, index)
-            print("PATH:  ", path)
+            print("random path")
+            #target_node = input("enter target node id: ")
+            result = atksim.random_path(atkgraph, start_node, target_node, index)
         elif command == '3':
             break
 
-        '''
-        # store the path and horizon to file
-        file = 'temp.json'
-        add_nodes_to_json_file(file, path[0], index)  # also add attacker horizon here?
-        upload_json_to_neo4j.upload_json_to_neo4j_database(file, graph)
-        '''
+        total_cost = result[1]
+        path = result[2]
+        add_nodes_to_json_file("attack_simulation.json", path.keys(), path)
+        upload_json_to_neo4j.upload_json_to_neo4j_database("attack_simulation.json", graph)
+        print("TOTAL COST:  ", total_cost)
+       
            
 
 def index_nodes_by_id(atkgraph):
