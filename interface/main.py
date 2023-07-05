@@ -67,20 +67,18 @@ def step_by_step_attack_simulation(graph, atkgraph, index):
         if command == '1':
             print_horizon(horizon)
         elif command == '2':
-            # choose next node name to visit
-            print_options(action_commands)
-            command = input("choose: ")
-            if command == '1':
-                dict = print_horizon_w_commands(horizon)
-                print_options(dict)
-                option = input("choose node to attack: ")
-                attack_node = dict[int(option)]
+            # choose next node name to visit       
+            dict = print_horizon_w_commands(horizon)
+            print_options(dict)
+            option = input("choose node to attack: ")
+            attack_node = dict[int(option)]
 
             # update horizon
             if attack_node in horizon:
                 visited.add(attack_node)
                 horizon.remove(attack_node)
                 horizon = update_horizon(attack_node, horizon, index)
+                print_horizon(horizon)
 
             # store the path and horizon to file
             file = 'temp.json' 
