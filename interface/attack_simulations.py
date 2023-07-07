@@ -179,7 +179,6 @@ def get_adjacency_list(atkgraph, and_nodes):
         for parent in node['parent_list']:
             adjacent[or_and].append(parent)
         dict[node['id']] = adjacent
-    # print("the result", dict)
     return dict 
 
 # Cost to find the AND and OR path
@@ -339,7 +338,7 @@ def random_path(start_node, target_node, index):
     visited = set()  # Store the IDs of visited nodes to avoid revisiting them
     visited.add(start_node)
 
-    stack = [start_node, start_node]
+    stack = [start_node]
 
     came_from = dict.fromkeys(node_ids, '')
     came_from = fill_dictionary_with_empty_list(came_from)
@@ -349,7 +348,6 @@ def random_path(start_node, target_node, index):
 
     current_node = start_node
     while len(stack) > 0:
-
         current_node = stack.pop()
         print(current_node)
 
@@ -368,13 +366,14 @@ def random_path(start_node, target_node, index):
                 if len(unvisited_links)>0:
                     break
         if len(unvisited_links)>0:
-                # select a node from the link list
-                neighbor = random.choice(unvisited_links)
-                if all_parents_visited(neighbor, visited, index):
-                    stack.append(neighbor)
-                    visited.add(neighbor)
-                    came_from[neighbor].append(current_node)
-                    cost+=costs[neighbor]
+                while True:
+                    neighbor = random.choice(unvisited_links)
+                    if all_parents_visited(neighbor, visited, index):
+                        stack.append(neighbor)
+                        visited.add(neighbor)
+                        came_from[neighbor].append(current_node)
+                        cost+=costs[neighbor]
+                        break
     return 
    
 def ao_star(atkgraph, target_node, index):

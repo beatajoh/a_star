@@ -1,10 +1,7 @@
 import json
 import attack_simulations as atksim
 import upload as upload_json_to_neo4j
-import node as node
-from py2neo import Graph, Node, Relationship
-
-
+from py2neo import Graph
 class console_colors:
     HEADER = '\033[95m'
     OKBLUE = '\033[94m'
@@ -152,6 +149,7 @@ def attack_simulation(graph, atkgraph, index, file):
         print_options(attack_simulation_commands)
         command = input("choose: ")
         start_node = atkgraph[-1]['id'] # TODO change this
+        path = None
 
         # clear path_links attribute
         for key in index.keys():
@@ -188,6 +186,8 @@ def attack_simulation(graph, atkgraph, index, file):
         if path != None:
             add_nodes_to_json_file(file, path.keys(), path)
             upload_json_to_neo4j.upload_json_to_neo4j_database(file, graph)
+        else: 
+            print("no result")
         
 
 
