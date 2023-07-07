@@ -40,7 +40,7 @@ attack_simulation_commands = {
     "5": "exit"
     }
 
-def step_by_step_attack_simulation(graph, atkgraph, index):
+def step_by_step_attack_simulation(graph, atkgraph, index, file):
     print(f"{console_colors.HEADER}step-by-step-attack{console_colors.ENDC}")
     
     # initialize visited nodes
@@ -50,6 +50,7 @@ def step_by_step_attack_simulation(graph, atkgraph, index):
     visited.add(atkgraph[-1]['id'])
 
     # initialize the horizon
+    # TODO add condition for 'and' nodes
     horizon = set()
     for node in visited:
         horizon = update_horizon(node, horizon, index)
@@ -63,12 +64,13 @@ def step_by_step_attack_simulation(graph, atkgraph, index):
             print_horizon(horizon)
         elif command == '2':
             # choose next node name to visit       
-            dict = print_horizon_w_commands(horizon)
-            print_options(dict)
+            node_options = get_horizon_w_commands(horizon)
+            print_options(node_options)
             option = input("choose node to attack: ")
-            attack_node = dict[int(option)]
+            attack_node = node_options[int(option)]
 
             # update horizon
+            # TODO add condition for 'and' nodes
             if attack_node in horizon:
                 visited.add(attack_node)
                 horizon.remove(attack_node)
@@ -76,8 +78,7 @@ def step_by_step_attack_simulation(graph, atkgraph, index):
                 print_horizon(horizon)
 
             # store the path and horizon to file
-            file = 'temp.json' 
-            add_nodes_to_json_file(file, visited, index)   # add the horizon in different color
+            add_nodes_to_json_file(file, visited, index)   
             add_horizon_nodes_to_json_file(file, horizon, index)
             upload_json_to_neo4j.upload_json_to_neo4j_database(file, graph)
 
@@ -101,8 +102,8 @@ def update_horizon(node, horizon, index):
 
 def add_nodes_to_json_file(file, visited, index):
     data = [] 
+    open(file, 'w').close() # remove all file contents
     with open(file, 'w', encoding='utf-8') as writefile:
-        writefile.truncate()    # remove all file contents
         for node_id in visited:
             node = index[node_id]
             node["horizon"] = False
@@ -110,7 +111,7 @@ def add_nodes_to_json_file(file, visited, index):
         json.dump(data, writefile, indent=4)
 
 
-def print_horizon_w_commands(horizon):
+def get_horizon_w_commands(horizon):
     dict = {}
     for i, node in enumerate(horizon):
         dict[i] = node
@@ -140,26 +141,35 @@ def get_parents_for_and_nodes(atkgraph):
     return atkgraph
 
 
-def attack_simulation(graph, atkgraph, index):
+def attack_simulation(graph, atkgraph, index, file):
     print(f"{console_colors.HEADER}Attack-Simulation{console_colors.ENDC}")
 
     # iterate over attack graph and find all dependency steps
     # maybe this can be built when the attack graph is generated to save some time ?
     atkgraph = get_parents_for_and_nodes(atkgraph)
-
+   
     while True:
         print_options(attack_simulation_commands)
-
         command = input("choose: ")
-        start_node = atkgraph[-1]['id']
-    
+        start_node = atkgraph[-1]['id'] # TODO change this
+
+        for key in index.keys():
+            index[key]["path_links"] = []
 
         if command == '1':
             print("shortest path dijkstra")
-            start_node = "AApplication7219598629313512read"
-            target_node = "HApplication7219598629313512networkRequestConnect"
-            #target_node = input("enter target node id: ")
+            target_node = input("enter target node id: ")
             result = atksim.dijkstra(atkgraph, start_node, target_node, index)
+            total_cost = result[1]
+            path = result[2]
+
+            for key in index.keys():
+                print(index[key]["links"])
+
+            add_nodes_to_json_file(file, path.keys(), path)
+            upload_json_to_neo4j.upload_json_to_neo4j_database(file, graph)
+            print("cost: ", total_cost)
+            print(len(path.keys()))
         elif command == '2':
             print("shortest path AO star")
             target_node = input("enter target node id: ")
@@ -167,36 +177,29 @@ def attack_simulation(graph, atkgraph, index):
             print("cost: ", cost)
         elif command == '3':
             print("random path")
-            start_node = "AApplication7219598629313512read"
-            target_node = "HApplication7219598629313512networkRequestConnect"
-            #target_node = input("enter target node id: ")
+            target_node = input("enter target node id: ")
             result = atksim.random_path(atkgraph, start_node, target_node, index)
             total_cost = result[1]
             path = result[2]
-        elif command == '4':
+            add_nodes_to_json_file(file, path.keys(), path)
+            upload_json_to_neo4j.upload_json_to_neo4j_database(file, graph)
+            print("cost: ", total_cost)
+        elif command == '4': # TODO for this subgraph to be correct we should also do a reachability analysis before...
             print("attack range BFS")
-            limit = 50
-            result = atksim.bfs(atkgraph, start_node, index, limit)
+            max_distance = int(input("enter maximum distance (cost): "))
+            for key in index.keys():
+                print(index[key]["links"])
+            result = atksim.bfs(atkgraph, start_node, index, max_distance)
+            add_nodes_to_json_file(file, result.keys(), index)
+            upload_json_to_neo4j.upload_json_to_neo4j_database(file, graph)
         elif command == '5':
             break
-        
-        if not isinstance(result, str) and command in ['1','3']:
-            total_cost = result[1]
-            path = result[2]
-            add_nodes_to_json_file("attack_simulation.json", path.keys(), path)
-            upload_json_to_neo4j.upload_json_to_neo4j_database("attack_simulation.json", graph)
-            print("cost: ", total_cost)
-        if not isinstance(result, str) and command in ['4']:
-            add_nodes_to_json_file("attack_simulation.json", result.keys(), index)
-            upload_json_to_neo4j.upload_json_to_neo4j_database("attack_simulation.json", graph)
 
-        else:
-            print(result)
-       
 
 def index_nodes_by_id(atkgraph):
     dict = {}
     for node in atkgraph:
+        node["path_links"] = []
         dict[node["id"]] = node
     return dict
 
@@ -208,33 +211,36 @@ def print_options(args):
             print(f"{console_colors.BOLD}", description)
         print(f"{console_colors.ENDC}",end="")
 
+
 def main():
     print(f"{console_colors.HEADER}Attack Simulation Interface{console_colors.ENDC}")
 
     # attack graph file (.json)
     file = "../test_graphs/real_graph.json"
-    #file = "../test_graphs/small_graph_2.json"
+    store_results_file = "temp.json"
 
     # load the attack graph
     with open(file, 'r') as readfile:
         atkgraph = json.load(readfile)
     
+    # TODO make a list of AtkgraphNodes using mgg node.py
+        
+    # TODO reachability analysis here with mgg functions
+    
     # build a dictionary with node id as keys and the entire json node element as the values
+    # we add an attribute called "path_links" which can be updated to store the results for the path
     index = index_nodes_by_id(atkgraph)
 
     # connect to Neo4j graph database
     graph = Graph("bolt://localhost:7687", auth=("neo4j", "mgg12345!"))
 
     while True:
-        
         print_options(start_commands)
-    
         command = input("choose: ")
-
         if command == '1':
-            step_by_step_attack_simulation(graph, atkgraph, index)
+            step_by_step_attack_simulation(graph, atkgraph, index, store_results_file)
         elif command == '2':
-            attack_simulation(graph, atkgraph, index)
+            attack_simulation(graph, atkgraph, index, store_results_file)
         elif command == '3':
             break
 

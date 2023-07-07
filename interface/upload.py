@@ -28,7 +28,7 @@ def upload_json_to_neo4j_database(file, graph):   # add file as argument
         nodes[node["id"]] = node_obj
 
     for node in data:
-        links = node["links"]
+        links = node["path_links"]
         for link in links:
             if link in nodes.keys():
                 from_node = nodes[node["id"]]

@@ -1,9 +1,8 @@
-import math
-import json
 from collections import deque
 import heapq
 import random
 import re
+
 '''
 Discovers if the node is an 'and' or 'or' node.
 If the node is an 'or' node, the function returns True.
@@ -19,10 +18,11 @@ def all_parents_visited(node, visited, index):
     return True
     
 def all_neighbors_visited(neighbors, visited): 
+    unvisited_neighbors = []
     for neighbor in neighbors:
         if neighbor not in visited:
-            return False
-    return True
+            unvisited_neighbors.append(neighbor)
+    return unvisited_neighbors
 
 '''
 Returns true if the node is an and node.
@@ -50,7 +50,7 @@ def reconstruct_path(came_from, current, start_node, costs, index, visited=set()
                     path, path_cost, _ = reconstruct_path(came_from, node, start_node, costs, index, visited)
                     total_path.insert(0,path)
                     cost += path_cost+costs[old_current]
-                    index[path[-1]]["links"].append(old_current)
+                    index[path[-1]]["path_links"].append(old_current)
                 break
             else:
                 current = current[0]
@@ -59,9 +59,10 @@ def reconstruct_path(came_from, current, start_node, costs, index, visited=set()
                     cost += costs[old_current]
                     visited.add(old_current)
                 total_path.insert(0,current)
-                if old_current not in index[current]["links"]:
-                    index[current]["links"].append(old_current) 
+                if old_current not in index[current]["path_links"]:
+                    index[current]["path_links"].append(old_current) 
     return total_path, cost, index
+    
 
 
 '''
@@ -114,8 +115,7 @@ def get_parents_for_and_nodes(atkgraph):
     return atkgraph
 
 '''
-Performing a graph traversal algorithm, 
-breadth-first search (BFS), starting from the target node.
+Breadth-First Search (BFS), starting from the target node.
 '''
 def get_heuristics_for_nodes(atkgraph, target_node):
     heuristics = {}
@@ -138,6 +138,33 @@ def get_heuristics_for_nodes(atkgraph, target_node):
                 queue.append((parent, distance + 1))  # Increment the distance by 1 for each neighbor
     
     return heuristics
+
+'''
+BFS...for now it is basically a copy of get_heuristics_for_nodes()
+This function returns all nodes which is at a lower distance than 'limit' cost
+'''
+def bfs(atkgraph, source, index, max_distance):
+    total_distance_from_source = {}
+    queue = deque([(source, 0)])  # Start BFS from the start node with distance 0
+    visited = set([source])  # Keep track of visited nodes
+    # Perform Breadth-First Search (BFS) from the start node
+    while queue:
+        node, distance = queue.popleft()
+        if distance > max_distance:
+            break
+        index[node]["path_links"] = index[node]["links"]
+        # Assign the distance from the source for each node
+        total_distance_from_source[node] = distance  
+        # Explore the neighbors of the current node
+        for other_node in atkgraph:
+            if other_node['id'] == node:
+                neighbor_list = other_node['links']
+                break    
+        for neighbor in neighbor_list:
+            if neighbor not in visited:
+                visited.add(neighbor)
+                queue.append((neighbor, distance + index[neighbor]['ttc']['cost'][0]))  # Increment the distance
+    return total_distance_from_source
 
 def get_adjacency_list(atkgraph, and_nodes):
     dict = {}
@@ -280,8 +307,6 @@ def dijkstra(atkgraph, start_node, target_node, index):
         visited.add(current_node)
 
         if current_node == target_node:
-            for key in index.keys():    
-                index[key]["links"] = []    
             return reconstruct_path(came_from, current_node, start_node, costs_copy, index, set())
 
         current_neighbors = index[current_node]["links"]
@@ -309,12 +334,13 @@ def dijkstra(atkgraph, start_node, target_node, index):
 calculate the random path (according to option 1)
 '''
 def random_path(atkgraph, start_node, target_node, index):
+    path = "path not found"
     node_ids = list(index.keys())
 
     visited = set()  # Store the IDs of visited nodes to avoid revisiting them
     visited.add(start_node)
 
-    stack = [start_node]
+    stack = [start_node, start_node]
 
     came_from = dict.fromkeys(node_ids, '')
     came_from = fill_dictionary_with_empty_list(came_from)
@@ -323,40 +349,36 @@ def random_path(atkgraph, start_node, target_node, index):
     cost = 0
 
     current_node = start_node
-    while current_node != target_node:
-        links = index[current_node]['links']
-        # all paths has been tried
-        if len(stack) == 0: 
-            return "Path not found"
-        # leaf in graph     
-        if len(links) == 0:
-            current_node = stack.pop()
-            links = index[current_node]['links']
-    
-        # select a node from the link list
-        neighbor = random.choice(links)
+    while len(stack) > 0:
 
-        # a node which has not been visited yet was selected
-        if neighbor not in visited:
-            if all_parents_visited(neighbor, visited, index):
-                came_from[neighbor].append(current_node)
-                current_node = neighbor
-                stack.append(current_node)
-                visited.add(neighbor)
-                cost+=costs[current_node]
-                if is_and_node(neighbor, index):
-                    came_from[neighbor] = index[neighbor]["parent_list"]
-            elif len(links)>1 and not all_neighbors_visited(links, visited):
-                continue
-            else:
-                # temporarily unreachable 'and' node was found
+        current_node = stack.pop()
+        print(current_node)
+
+        if current_node == target_node:
+            #for key in index.keys():    
+            #    index[key]["links"] = [] 
+            path = reconstruct_path(came_from, current_node, start_node, costs, index, set())
+            break
+
+        links = index[current_node]['links']
+        unvisited_links = all_neighbors_visited(links, visited)
+
+        if len(unvisited_links)==0:
+            while len(stack) > 0:
                 current_node = stack.pop()
-    
-    
-    for key in index.keys():    
-        index[key]["links"] = [] 
-    path = reconstruct_path(came_from, current_node, start_node, costs, index, set())
-    
+                links = index[current_node]['links']
+                unvisited_links = all_neighbors_visited(links, visited)
+                if len(unvisited_links)>0:
+                    break
+        if len(unvisited_links)>0:
+                # select a node from the link list
+                neighbor = random.choice(unvisited_links)
+                if all_parents_visited(neighbor, visited, index):
+                    stack.append(neighbor)
+                    visited.add(neighbor)
+                    came_from[neighbor].append(current_node)
+                    cost+=costs[neighbor]
+        print(stack)
 
     return path  
    
