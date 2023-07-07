@@ -41,7 +41,7 @@ def is_and_node(node, parent_nodes):
 '''
 Reconstructs the path found by the Dijkstra function and calculates the total cost for the path.
 '''
-def reconstruct_path(came_from, current, start_node, costs, visited=set()):
+def reconstruct_path(came_from, current, start_node, costs, index, visited=set()):
     cost = 0
     if current != start_node:
         # reconstruct the path until the start node is reached
@@ -65,34 +65,6 @@ def reconstruct_path(came_from, current, start_node, costs, visited=set()):
                     index[current]["path_links"].append(old_current) 
     return cost, index, old_current
     
-
-
-'''
-def reconstruct_path(came_from, current, start_node, costs, visited=set()):
-    cost = 0
-    total_path=[]
-    if current != start_node:
-        total_path = [current]
-        # reconstruct the path until the start node is reached
-        while current in came_from.keys() and current != start_node:
-            old_current = current
-            current = came_from[current] 
-            # condition for 'and' node       
-            if len(current)>1:
-                for node in current:
-                    path, costt = reconstruct_path(came_from, node, start_node, costs, visited)
-                    total_path.insert(0,path)
-                    cost += costt+costs[old_current]
-            else:
-                current = current[0]
-                # update cost for all nodes once
-                if old_current not in visited:
-                    cost += costs[old_current]
-                    visited.add(old_current)
-                total_path.insert(0,current)
-    print(total_path)
-    return total_path, cost
-'''
 
 '''
 Returns a list of node ids.
@@ -339,7 +311,6 @@ def calculate_shortest_path_cost(shortest_path_str, cost, heuristics):
 Finds the shortest path with Dijkstra algorithm, with added conditions for handling the 'and' nodes.
 '''
 def dijkstra(start_node, target_node, index):
-
     node_ids = list(index.keys())
 
     open_set = []
@@ -358,7 +329,6 @@ def dijkstra(start_node, target_node, index):
     # calculate the h_score for all nodes
     h_score = dict.fromkeys(node_ids, 0)
    
-
     # for node n, f_score[n] = g_score[n] + h_score(n). f_score[n] represents our current best guess as to
     # how cheap a path could be from start to finish if it goes through n.
     f_score = dict.fromkeys(node_ids, 0)
@@ -376,7 +346,7 @@ def dijkstra(start_node, target_node, index):
         if current_node == target_node:
             return reconstruct_path(came_from, current_node, start_node, costs_copy, index, set())
 
-        current_neighbors = neighbor_nodes[current_node]
+        current_neighbors = index[current_node]["links"]
        
         for neighbor in current_neighbors:  
             tentative_g_score = g_score[current_node]+costs[neighbor]
@@ -384,17 +354,18 @@ def dijkstra(start_node, target_node, index):
             if tentative_g_score < g_score[neighbor]:
                 # if it is an 'or' node or if the and all parents to the 'and' node has been visited,
                 # continue to try this path
-                if all_parents_visited(neighbor, parent_nodes, visited):
+                if all_parents_visited(neighbor, visited, index):
                     came_from[neighbor].append(current_node)
                     g_score[neighbor] = tentative_g_score
                     f_score[neighbor] = tentative_g_score + h_score[neighbor]
                     if neighbor not in open_set:
                         heapq.heappush(open_set, (f_score[neighbor], neighbor))
                 # if the node is an 'and' node, still update the node cost and keep track of the path
-                elif is_and_node(neighbor, parent_nodes):
+                elif is_and_node(neighbor, index):
                     costs[neighbor]=tentative_g_score
                     came_from[neighbor].append(current_node)
     return 
+
 
 
 ''' 

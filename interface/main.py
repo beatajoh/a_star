@@ -111,7 +111,6 @@ def add_nodes_to_json_file(file, visited, index):
             data.append(node)
         json.dump(data, writefile, indent=4)
 
-
 def get_horizon_w_commands(horizon):
     dict = {}
     for i, node in enumerate(horizon):
