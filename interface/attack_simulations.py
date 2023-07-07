@@ -3,12 +3,6 @@ import heapq
 import random
 import re
 
-# TODO we should have a class for storing the:
-# - copy of attack graph/index
-#   - with modified path_links
-#   - target_node
-# - attacker position
-
 '''
 Discovers if the node is an 'and' or 'or' node.
 If the node is an 'or' node, the function returns True.
@@ -85,27 +79,6 @@ def fill_dictionary_with_empty_list(dict):
     return dict
 
 '''
-Gets the neighbor nodes, aka the outgoing links to nodes, for all nodes in the attack graph.
-Returns a dictionary with node ids as keys, and score as values.
-'''
-def get_neighbor_nodes(atkgraph): 
-    dict = {}
-    for node in atkgraph:
-        dict[node['id']] = node['links']
-    return dict
-
-'''
-Gets the parent nodes, aka the incoming links to nodes, for all nodes in the attack graph.
-Returns a dictionary with node ids as keys, and the parent_list as values.
-'''
-def get_parent_nodes_for_and_nodes(atkgraph): 
-    dict = {}
-    for node in atkgraph:
-        if node['type'] == 'and':
-            dict[node['id']] = node['parent_list']
-    return dict
-
-'''
 Gets the cost for all attack steps in the graph.
 Returns a dictionary with node ids as keys, and the parent_list as values.
 '''
@@ -116,36 +89,6 @@ def get_costs(index):
         if not node['ttc'] == None: # for the attacker node, the ttc is None
             dict[key]=node['ttc']['cost'][0]
     return dict
-
-
-'''
-Traverse the attack graph .json file and get all parents to 'and' nodes and add new 'parent_list' attribute to the file.
-parent_list is an array of attack step ids.
-'''
-def get_parents_for_and_nodes(atkgraph):
-    n=0
-    id=""
-    id2=""
-    for i, node in enumerate(atkgraph):
-        id=node["id"]
-        parent_list=[]
-        if node["type"]=="and":
-            for node2 in atkgraph:
-                id2=node2["id"]
-                for link in node2["links"]:
-                    if link==id and node2["type"] in ["and", "or"]:
-                        parent_list.append(id2)
-            n+=1
-            atkgraph[i]["parent_list"]=parent_list
-        else:
-            for node2 in atkgraph:
-                id2=node2["id"]
-                for link in node2["links"]:
-                    if link==id and node2["type"] in ["and", "or"]:
-                        parent_list.append(id2)
-            n+=1
-            atkgraph[i]["parent_list"]=parent_list
-    return atkgraph
 
 '''
 Breadth-First Search (BFS), starting from the target node.
@@ -379,9 +322,6 @@ def random_path(start_node, target_node, index):
 
     stack = [start_node]
 
-    parent_nodes = get_parent_nodes_for_and_nodes(atkgraph)
-    neighbor_nodes = get_neighbor_nodes(atkgraph)  # Get the linked nodes of the current node
-
     came_from = dict.fromkeys(node_ids, '')
     came_from = fill_dictionary_with_empty_list(came_from)
 
@@ -419,7 +359,6 @@ def random_path(start_node, target_node, index):
     return 
    
 def ao_star(atkgraph, target_node, index):
-    atkgraph = get_parents_for_and_nodes(atkgraph)
     H = get_heuristics_for_nodes(atkgraph, target_node)
     weight = get_costs(index)
     and_nodes = get_and_nodes(atkgraph)
