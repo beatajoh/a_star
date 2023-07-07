@@ -162,12 +162,23 @@ def calculate_shortest_path_cost(shortest_path_str, cost, heuristics):
     total_cost = 0
     visited = set()
 
-    for node in nodes:
+    for i, node in enumerate(nodes):
+        if node == 'OR':
+            if nodes.count(nodes[i-1]) > 1:
+                visited.add(nodes[i-1])
+                del nodes[i+1]
+            elif nodes.count(nodes[i+1]) > 1:
+                visited.add(nodes[i+1])
+                del nodes[i-1]
+            continue
         if node not in ['AND', 'OR'] and node not in visited:
-            total_cost += cost[node] + heuristics[node]
             visited.add(node)
+    # Calculate the total cost for visited nodes
+    for node in visited:
+        total_cost += cost[node] + heuristics[node]
 
     return total_cost
+
 
 
 # H = {'H': 0, 'E': 1, 'C': 2, 'F': 2, 'B': 3, 'D': 3, 'A': 4, 'G': 4}
