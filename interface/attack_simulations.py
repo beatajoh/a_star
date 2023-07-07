@@ -3,6 +3,12 @@ import heapq
 import random
 import re
 
+# TODO we should have a class for storing the:
+# - copy of attack graph/index
+#   - with modified path_links
+#   - target_node
+# - attacker position
+
 '''
 Discovers if the node is an 'and' or 'or' node.
 If the node is an 'or' node, the function returns True.
@@ -37,31 +43,27 @@ Reconstructs the path found by the Dijkstra function and calculates the total co
 '''
 def reconstruct_path(came_from, current, start_node, costs, index, visited=set()):
     cost = 0
-    total_path = []
     if current != start_node:
-        total_path = [current]
         # reconstruct the path until the start node is reached
         while current in came_from.keys() and current != start_node:
             old_current = current
-            current = came_from[current] # link from current -> old_current
+            # link from current -> old_current
+            current = came_from[current]
             # condition for 'and' node       
             if len(current)>1:
                 for node in current:
-                    path, path_cost, _ = reconstruct_path(came_from, node, start_node, costs, index, visited)
-                    total_path.insert(0,path)
+                    path_cost, _,  = reconstruct_path(came_from, node, start_node, costs, index, visited)
                     cost += path_cost+costs[old_current]
-                    index[path[-1]]["path_links"].append(old_current)
+                    index[old_current]["path_links"].append(old_current)
                 break
             else:
                 current = current[0]
-                # update cost for all nodes once
                 if old_current not in visited:
                     cost += costs[old_current]
                     visited.add(old_current)
-                total_path.insert(0,current)
                 if old_current not in index[current]["path_links"]:
                     index[current]["path_links"].append(old_current) 
-    return total_path, cost, index
+    return cost, index, old_current
     
 
 
@@ -78,11 +80,12 @@ def fill_dictionary_with_empty_list(dict):
 Gets the cost for all attack steps in the graph.
 Returns a dictionary with node ids as keys, and the parent_list as values.
 '''
-def get_costs_for_nodes(atkgraph):
+def get_costs(index):
     dict = {}
-    for node in atkgraph:
+    for key in index.keys():
+        node = index[key]
         if not node['ttc'] == None: # for the attacker node, the ttc is None
-            dict[node['id']]=node['ttc']['cost'][0]
+            dict[key]=node['ttc']['cost'][0]
     return dict
 
 '''
@@ -143,8 +146,8 @@ def get_heuristics_for_nodes(atkgraph, target_node):
 BFS...for now it is basically a copy of get_heuristics_for_nodes()
 This function returns all nodes which is at a lower distance than 'limit' cost
 '''
-def bfs(atkgraph, source, index, max_distance):
-    total_distance_from_source = {}
+def bfs(source, index, max_distance):
+    nodes = {}
     queue = deque([(source, 0)])  # Start BFS from the start node with distance 0
     visited = set([source])  # Keep track of visited nodes
     # Perform Breadth-First Search (BFS) from the start node
@@ -152,19 +155,16 @@ def bfs(atkgraph, source, index, max_distance):
         node, distance = queue.popleft()
         if distance > max_distance:
             break
+        # reset the "path_links" attribute
         index[node]["path_links"] = index[node]["links"]
         # Assign the distance from the source for each node
-        total_distance_from_source[node] = distance  
+        nodes[node] = index[node]  
         # Explore the neighbors of the current node
-        for other_node in atkgraph:
-            if other_node['id'] == node:
-                neighbor_list = other_node['links']
-                break    
-        for neighbor in neighbor_list:
-            if neighbor not in visited:
-                visited.add(neighbor)
-                queue.append((neighbor, distance + index[neighbor]['ttc']['cost'][0]))  # Increment the distance
-    return total_distance_from_source
+        for link in index[node]["links"]:
+            if link not in visited:
+                visited.add(link)
+                queue.append((link, distance + index[link]['ttc']['cost'][0]))  # Increment the distance
+    return nodes
 
 def get_adjacency_list(atkgraph, and_nodes):
     dict = {}
@@ -272,7 +272,7 @@ def calculate_shortest_path_cost(shortest_path_str, cost, heuristics):
 '''
 Finds the shortest path with Dijkstra algorithm, with added conditions for handling the 'and' nodes.
 '''
-def dijkstra(atkgraph, start_node, target_node, index):
+def dijkstra(start_node, target_node, index):
 
     node_ids = list(index.keys())
 
@@ -297,7 +297,7 @@ def dijkstra(atkgraph, start_node, target_node, index):
     f_score = dict.fromkeys(node_ids, 0)
     f_score[start_node] = h_score[start_node]
     
-    costs = get_costs_for_nodes(atkgraph)
+    costs = get_costs(index)
     costs_copy = costs.copy()
 
     current_node = start_node
@@ -327,14 +327,13 @@ def dijkstra(atkgraph, start_node, target_node, index):
                 elif is_and_node(neighbor, index):
                     costs[neighbor]=tentative_g_score
                     came_from[neighbor].append(current_node)
-    return "path not found"
+    return 
 
 
 ''' 
 calculate the random path (according to option 1)
 '''
-def random_path(atkgraph, start_node, target_node, index):
-    path = "path not found"
+def random_path(start_node, target_node, index):
     node_ids = list(index.keys())
 
     visited = set()  # Store the IDs of visited nodes to avoid revisiting them
@@ -345,7 +344,7 @@ def random_path(atkgraph, start_node, target_node, index):
     came_from = dict.fromkeys(node_ids, '')
     came_from = fill_dictionary_with_empty_list(came_from)
 
-    costs = get_costs_for_nodes(atkgraph)
+    costs = get_costs(index)
     cost = 0
 
     current_node = start_node
@@ -355,10 +354,8 @@ def random_path(atkgraph, start_node, target_node, index):
         print(current_node)
 
         if current_node == target_node:
-            #for key in index.keys():    
-            #    index[key]["links"] = [] 
             path = reconstruct_path(came_from, current_node, start_node, costs, index, set())
-            break
+            return path
 
         links = index[current_node]['links']
         unvisited_links = all_neighbors_visited(links, visited)
@@ -378,14 +375,12 @@ def random_path(atkgraph, start_node, target_node, index):
                     visited.add(neighbor)
                     came_from[neighbor].append(current_node)
                     cost+=costs[neighbor]
-        print(stack)
-
-    return path  
+    return 
    
-def ao_star(atkgraph, target_node):
+def ao_star(atkgraph, target_node, index):
     atkgraph = get_parents_for_and_nodes(atkgraph)
     H = get_heuristics_for_nodes(atkgraph, target_node)
-    weight = get_costs_for_nodes(atkgraph)
+    weight = get_costs(index)
     and_nodes = get_and_nodes(atkgraph)
     adjacency_list = get_adjacency_list(atkgraph, and_nodes)
     Updated_cost = update_cost(H, adjacency_list, weight)
