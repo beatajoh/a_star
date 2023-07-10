@@ -321,6 +321,7 @@ def random_path(start_node, index, target_node=None, cost_budget=None):
     came_from = dict.fromkeys(node_ids, '')
 
     horizon = set()
+    # initialize the attack horizon
     for node_id in index[start_node]["links"]:
         horizon.add(node_id)
         came_from[node_id] = start_node
@@ -332,11 +333,11 @@ def random_path(start_node, index, target_node=None, cost_budget=None):
         node = random.choice(list(horizon))
         # attack unvisited node
         if all_parents_visited(node, visited, index):
-            if cost_budget != None and cost >= cost_budget:
+            if cost_budget != None and cost+costs[node]>cost_budget:
                 break
             visited.add(node)
             index[came_from[node]]["path_links"].append(node) 
-            cost+=costs[node]
+            cost += costs[node]
             # update the horizon
             horizon.remove(node)
             for node_id in index[node]['links']:

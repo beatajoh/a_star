@@ -176,8 +176,15 @@ def attack_simulation(graph, atkgraph, index, file):
             print("cost: ", cost)
         elif command == '3': # TODO test
             print("random path")
-            target_node = input("enter target node id: ")
-            result = atksim.random_path(start_node, index)
+            target_node = input("enter target node id (press enter to run without target): ")
+            attack_budget = input("enter attack budget (press enter to run without target): ")
+            if target_node == "":
+                target_node = None
+            if attack_budget != "":
+                attack_budget = int(attack_budget)
+            if attack_budget == "":
+                attack_budget = None
+            result = atksim.random_path(start_node, index, target_node=target_node, cost_budget=attack_budget)
             if result != None:
                 total_cost = result[0]
                 path = result[1]
