@@ -8,27 +8,27 @@ Discovers if the node is an 'and' or 'or' node.
 If the node is an 'or' node, the function returns True.
 If the node is an 'and' node, the function returns True if all parent nodes has been visited.
 '''
-def all_parents_visited(node, parent_nodes, visited):
-    if is_and_node(node, parent_nodes):
+def all_parents_visited(node, visited, index):
+    if is_and_node(node, index):
         # if all the dependency steps (parents) are visited return true,
         # otherwise return false
-        for parents in parent_nodes[node]:
+        for parents in index[node]["parent_list"]:
             if parents not in visited:
                 return False 
     return True
     
 def all_neighbors_visited(neighbors, visited): 
-    unvisited_neighbors = []
+    unvisited_neighbors = set()#[]
     for neighbor in neighbors:
         if neighbor not in visited:
-            unvisited_neighbors.append(neighbor)
+            unvisited_neighbors.add(neighbor)#append(neighbor)
     return unvisited_neighbors
 
 '''
 Returns true if the node is an and node.
 '''
-def is_and_node(node, parent_nodes):
-    if node in parent_nodes:
+def is_and_node(node, index):
+    if index[node]["type"] == "and":
        return True
     return False
 
@@ -93,7 +93,7 @@ def get_costs(index):
 '''
 Breadth-First Search (BFS), starting from the target node.
 '''
-def get_heuristics_for_nodes(atkgraph, target_node):
+def get_heuristics_for_nodes(index, target_node):
     heuristics = {}
     
     # Perform Breadth-First Search (BFS) from the target node
@@ -104,10 +104,7 @@ def get_heuristics_for_nodes(atkgraph, target_node):
         node, distance = queue.popleft()
         heuristics[node] = distance  # Assign the distance as the heuristic value
         # Explore the neighbors of the current node
-        for other_node in atkgraph:
-            if other_node['id'] == node:
-                parent_list = other_node['parent_list']
-                break    
+        parent_list = index[node]["parent_list"]
         for parent in parent_list:
             if parent not in visited:
                 visited.add(parent)
@@ -313,58 +310,64 @@ def dijkstra(start_node, target_node, index):
 
 ''' 
 calculate the random path (according to option 1)
+searching for a target node
 '''
-def random_path(start_node, target_node, index):
+def random_path(start_node, index, target_node=None, cost_budget=None):
     node_ids = list(index.keys())
 
     visited = set()  # Store the IDs of visited nodes to avoid revisiting them
     visited.add(start_node)
 
-    stack = [start_node]
-
     came_from = dict.fromkeys(node_ids, '')
-    came_from = fill_dictionary_with_empty_list(came_from)
+
+    horizon = set()
+    for node_id in index[start_node]["links"]:
+        horizon.add(node_id)
+        came_from[node_id] = start_node
 
     costs = get_costs(index)
     cost = 0
 
-    current_node = start_node
-    while len(stack) > 0:
-        current_node = stack.pop()
-        print(current_node)
-
-        if current_node == target_node:
-            path = reconstruct_path(came_from, current_node, start_node, costs, index, set())
-            return path
-
-        links = index[current_node]['links']
-        unvisited_links = all_neighbors_visited(links, visited)
-
-        if len(unvisited_links)==0:
-            while len(stack) > 0:
-                current_node = stack.pop()
-                links = index[current_node]['links']
-                unvisited_links = all_neighbors_visited(links, visited)
-                if len(unvisited_links)>0:
-                    break
-        if len(unvisited_links)>0:
-                while True:
-                    neighbor = random.choice(unvisited_links)
-                    if all_parents_visited(neighbor, visited, index):
-                        stack.append(neighbor)
-                        visited.add(neighbor)
-                        came_from[neighbor].append(current_node)
-                        cost+=costs[neighbor]
-                        break
-    return 
+    while len(horizon)>0:
+        node = random.choice(list(horizon))
+        # attack unvisited node
+        if all_parents_visited(node, visited, index):
+            if cost_budget != None and cost >= cost_budget:
+                break
+            visited.add(node)
+            index[came_from[node]]["path_links"].append(node) 
+            cost+=costs[node]
+            # update the horizon
+            horizon.remove(node)
+            for node_id in index[node]['links']:
+                horizon.add(node_id)
+                came_from[node_id] = node
+            if target_node != None and node == target_node:
+                break
+    return cost, index
    
 def ao_star(atkgraph, target_node, index):
-    H = get_heuristics_for_nodes(atkgraph, target_node)
+    H = get_heuristics_for_nodes(index, target_node)
     weight = get_costs(index)
     and_nodes = get_and_nodes(atkgraph)
     adjacency_list = get_adjacency_list(atkgraph, and_nodes)
+    print(adjacency_list)
     Updated_cost = update_cost(H, adjacency_list, weight)
     shortest_path_str = shortest_path_ao_star(target_node, Updated_cost, H)
+    print(shortest_path_str)
     total_cost = calculate_shortest_path_cost(shortest_path_str, weight, H)
 
     return shortest_path_str, total_cost
+
+
+
+def ao_modified(start, index, h):
+
+    # init
+    for node_id in index.keys():
+        index[node_id]["solved"] = False    
+
+    # add start to G
+
+    #TODO
+    return 

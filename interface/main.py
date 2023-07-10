@@ -1,6 +1,8 @@
+import os
 import json
 import attack_simulations as atksim
 import upload as upload_json_to_neo4j
+
 from py2neo import Graph
 class console_colors:
     HEADER = '\033[95m'
@@ -95,6 +97,7 @@ def add_horizon_nodes_to_json_file(file, horizon, index):
             data.append(node)
     with open(file, 'w', encoding='utf-8') as writefile:
         json.dump(data, writefile, indent=4)
+    print("The attack horizon is added to the file", file)
 
 def update_horizon(node, horizon, index):
     for link in index[node]['links']:
@@ -110,6 +113,8 @@ def add_nodes_to_json_file(file, visited, index):
             node["horizon"] = False
             data.append(node)
         json.dump(data, writefile, indent=4)
+    print("The path is added to the file", file)
+
 
 def get_horizon_w_commands(horizon):
     dict = {}
@@ -167,12 +172,12 @@ def attack_simulation(graph, atkgraph, index, file):
         elif command == '2': # TODO test and add in same format as the rest
             print("shortest path AO star")
             target_node = input("enter target node id: ")
-            path, cost = atksim.ao_star(atkgraph, target_node)
+            path, cost = atksim.ao_star(atkgraph, target_node, index)
             print("cost: ", cost)
         elif command == '3': # TODO test
             print("random path")
             target_node = input("enter target node id: ")
-            result = atksim.random_path(start_node, target_node, index)
+            result = atksim.random_path(start_node, index)
             if result != None:
                 total_cost = result[0]
                 path = result[1]
@@ -205,13 +210,35 @@ def print_options(args):
             print(f"{console_colors.BOLD}", description)
         print(f"{console_colors.ENDC}",end="")
 
+def choose_atkgraph_file(directory):
+    print("which attack graph file do you want to load?")
+    options = get_files_in_directory(directory)
+    print_options(options)
+    command = input("choose: ")
+    file = options[int(command)]
+    return file
+
+
+def get_files_in_directory(directory):
+    dict = {}
+    for i, filename in enumerate(os.listdir(directory)):
+        # Check if the current item is a file
+        if os.path.isfile(os.path.join(directory, filename)):
+            dict[i] = filename
+    return dict
+
 
 def main():
     print(f"{console_colors.HEADER}Attack Simulation Interface{console_colors.ENDC}")
 
+    # CHECK TODO let user choose file to load from a list
+    # CHECK TODO and print where all results are stored after the attack simulations
     # attack graph file (.json)
+    directory = "../test_graphs/"
+    file = choose_atkgraph_file(directory)
+    print(file)
     file = "../test_graphs/real_graph.json"
-    store_results_file = "temp.json"
+    store_results_file = "../test_graphs/temp.json"
 
     # load the attack graph
     with open(file, 'r') as readfile:
