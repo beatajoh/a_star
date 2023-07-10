@@ -359,16 +359,3 @@ def ao_star(atkgraph, target_node, index):
     total_cost = calculate_shortest_path_cost(shortest_path_str, weight, H)
 
     return shortest_path_str, total_cost
-
-
-
-def ao_modified(start, index, h):
-
-    # init
-    for node_id in index.keys():
-        index[node_id]["solved"] = False    
-
-    # add start to G
-
-    #TODO
-    return 

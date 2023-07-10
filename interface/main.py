@@ -53,7 +53,6 @@ def step_by_step_attack_simulation(graph, atkgraph, index, file):
     visited.add(atkgraph[-1]['id'])
 
     # initialize the horizon
-    # TODO add condition for 'and' nodes
     horizon = set()
     for node in visited:
         horizon = update_horizon(node, horizon, index)
@@ -64,7 +63,7 @@ def step_by_step_attack_simulation(graph, atkgraph, index, file):
         command = input("choose: ")
 
         if command == '1':
-            print_horizon(horizon)
+            print_horizon(horizon, index)
         elif command == '2':
             # choose next node name to visit       
             node_options = get_horizon_w_commands(horizon)  # TODO print the node type
@@ -73,18 +72,17 @@ def step_by_step_attack_simulation(graph, atkgraph, index, file):
             attack_node = node_options[int(option)]
 
             # update horizon
-            # TODO add condition for 'and' nodes
-            if attack_node in horizon:
+            if attack_node in horizon and atksim.all_parents_visited(attack_node, visited, index):
                 visited.add(attack_node)
                 horizon.remove(attack_node)
                 horizon = update_horizon(attack_node, horizon, index)
-                print_horizon(horizon)
-
-            # store the path and horizon to file
-            add_nodes_to_json_file(file, visited, index)   
-            add_horizon_nodes_to_json_file(file, horizon, index)
-            upload_json_to_neo4j.upload_json_to_neo4j_database(file, graph)
-
+                # store the path and horizon to file
+                add_nodes_to_json_file(file, visited, index)   
+                add_horizon_nodes_to_json_file(file, horizon, index)
+                upload_json_to_neo4j.upload_json_to_neo4j_database(file, graph)
+            else:
+                print("could not attack this node because all dependency steps has not been visited")
+            print_horizon(horizon, index)
         elif command == '3':
             break
 
@@ -119,13 +117,14 @@ def add_nodes_to_json_file(file, visited, index):
 def get_horizon_w_commands(horizon):
     dict = {}
     for i, node in enumerate(horizon):
-        dict[i] = node
+        dict[i+1] = node
     return dict
 
-def print_horizon(horizon):
+def print_horizon(horizon, index):
     print(f"{console_colors.FAIL}Attacker Horizon{console_colors.ENDC}")
-    for node in horizon:
-        print(node)
+    for i, node in enumerate(horizon):
+        print(f"{console_colors.BOLD}", "(", i+1, ")", node, index[node]["type"])
+    print(f"{console_colors.ENDC}")
 
 
 def get_parents_for_and_nodes(atkgraph):
@@ -223,7 +222,7 @@ def choose_atkgraph_file(directory):
     print_options(options)
     command = input("choose: ")
     file = options[int(command)]
-    return file
+    return os.path.join(directory, file)
 
 
 def get_files_in_directory(directory):
@@ -231,20 +230,16 @@ def get_files_in_directory(directory):
     for i, filename in enumerate(os.listdir(directory)):
         # Check if the current item is a file
         if os.path.isfile(os.path.join(directory, filename)):
-            dict[i] = filename
+            dict[i+1] = filename
     return dict
 
 
 def main():
     print(f"{console_colors.HEADER}Attack Simulation Interface{console_colors.ENDC}")
 
-    # CHECK TODO let user choose file to load from a list
-    # CHECK TODO and print where all results are stored after the attack simulations
     # attack graph file (.json)
     directory = "../test_graphs/"
     file = choose_atkgraph_file(directory)
-    print(file)
-    file = "../test_graphs/real_graph.json"
     store_results_file = "../test_graphs/temp.json"
 
     # load the attack graph
