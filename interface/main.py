@@ -128,20 +128,19 @@ def print_horizon(horizon, index):
 
 
 def get_parents_for_and_nodes(atkgraph):
-    n=0
-    id=""
-    id2=""
+    n = 0
+    id = ""
+    id2 = ""
     for i, node in enumerate(atkgraph):
-        id=node["id"]
-        parent_list=[]
-        if node["type"]=="and":
-            for node2 in atkgraph:
-                id2=node2["id"]
-                for link in node2["links"]:
-                    if link==id and node2["type"] in ["and", "or"]:
-                        parent_list.append(id2)
-            n+=1
-            atkgraph[i]["parent_list"]=parent_list
+        id = node["id"]
+        parent_list = []
+        for node2 in atkgraph:
+            id2 = node2["id"]
+            for link in node2["links"]:
+                if link == id and node2["type"] in ["and", "or"]:
+                    parent_list.append(id2)
+        n+=1
+        atkgraph[i]["parent_list"]=parent_list
     return atkgraph
 
 
@@ -168,15 +167,14 @@ def attack_simulation(graph, atkgraph, index, file):
                 total_cost = result[0]
                 path = result[1]
                 print("cost: ", total_cost)
-        elif command == '2':
+        elif command == '2':    #TODO add to the rest
             print("shortest path AO star")
-            target_node = input("enter target node id: ")
-            path, cost = atksim.ao_star(atkgraph, target_node, index)
-            print("cost: ", cost)
+            #target_node = input("enter target node id: ")
+            #path, cost = atksim.ao_star(atkgraph, target_node, index)
+            #print("cost: ", cost)
+            target_node = "Application:7219598629313512:networkConnect"
+            path, cost = atksim.ao_star(atkgraph, target_node, index)    
         elif command == '3':
-
-
-
             print("random path")
             target_node = input("enter target node id (press enter to run without target): ")
             attack_budget = input("enter attack budget (press enter to run without target): ")

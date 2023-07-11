@@ -95,21 +95,21 @@ Breadth-First Search (BFS), starting from the target node.
 '''
 def get_heuristics_for_nodes(index, target_node):
     heuristics = {}
-    
+    i=0
     # Perform Breadth-First Search (BFS) from the target node
     queue = deque([(target_node, 0)])  # Start BFS from the target node with distance 0
     visited = set([target_node])  # Keep track of visited nodes
-
     while queue:
+        i+=1
         node, distance = queue.popleft()
-        heuristics[node] = distance  # Assign the distance as the heuristic value
+        heuristics[node] = 100-distance  # Assign the distance as the heuristic value
         # Explore the neighbors of the current node
         parent_list = index[node]["parent_list"]
         for parent in parent_list:
             if parent not in visited:
                 visited.add(parent)
                 queue.append((parent, distance + 1))  # Increment the distance by 1 for each neighbor
-    
+    print("graph",i)
     return heuristics
 
 '''
@@ -347,9 +347,9 @@ def random_path(start_node, index, target_node=None, cost_budget=None):
                 print("the target, ", target_node,"was found!")
                 break
     return cost, index
-   
-def ao_star(atkgraph, target_node, index):
-    H = get_heuristics_for_nodes(index, target_node)
+
+
+def ao_star(atkgraph, start_node, index):
     weight = get_costs(index)
     and_nodes = get_and_nodes(atkgraph)
     adjacency_list = get_adjacency_list(atkgraph, and_nodes)
@@ -358,5 +358,63 @@ def ao_star(atkgraph, target_node, index):
     shortest_path_str = shortest_path_ao_star(target_node, Updated_cost, H)
     print(shortest_path_str)
     total_cost = calculate_shortest_path_cost(shortest_path_str, weight, H)
-
     return shortest_path_str, total_cost
+
+    '''
+    h = get_heuristics_for_nodes(index, start_node)
+    print(len(index))
+    print(len(h))
+    g = []
+    
+    solved = set()
+    futility = 1000
+    g.append(start_node)
+
+    m = []
+    unexpanded = [start_node]   # queue
+    while start_node not in solved and h[start_node] <= futility:
+        # Forward phase
+        current = unexpanded.pop(0)
+        print(current)
+        m.insert(0, current)
+        children = index[current]["parent_list"]
+        if len(children) == 0:
+            h[current] = futility
+        else:
+            print("YE")
+            for child in children:
+                unexpanded.insert(0, child)
+                g.append(child)
+                if len(index[child]["parent_list"]) == 0 or child not in h.keys():
+                    solved.add(child)
+                    # compute h(child)
+        print("CURRENT", current)
+
+        # Backwards phase
+        while len(m) != 0:
+            d = m.pop(0)
+            print("YE", d)
+            changed = False
+            if d in h.keys():
+                if index[d]["type"] == "and":
+                    # add all parent costs as h value
+                    h[d] = 0 
+                    for c in index[d]["parent_list"]:
+                        h[d] += h[c]
+                        changed = True
+                elif index[d]["type"] == "or":
+                    print("BEFORE", h[d])
+                    # add the cheapest costs as h value
+                    for c in index[d]["parent_list"]:
+                        if h[c] < h[d]:
+                            copy = h[c]
+                            h[d] = copy
+                            changed = True
+                    print("AFTER", h[d])
+                if changed == True:
+                    for link in index[d]["links"]:
+                        m.insert(0, link)
+    if start_node in solved:
+        return g, 99
+    return "hej", 0
+    '''
