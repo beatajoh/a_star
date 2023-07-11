@@ -2,8 +2,8 @@ import os
 import json
 import attack_simulations as atksim
 import upload as upload_json_to_neo4j
-
 from py2neo import Graph
+
 class console_colors:
     HEADER = '\033[95m'
     OKBLUE = '\033[94m'
@@ -168,12 +168,15 @@ def attack_simulation(graph, atkgraph, index, file):
                 total_cost = result[0]
                 path = result[1]
                 print("cost: ", total_cost)
-        elif command == '2': # TODO test and add in same format as the rest
+        elif command == '2':
             print("shortest path AO star")
             target_node = input("enter target node id: ")
             path, cost = atksim.ao_star(atkgraph, target_node, index)
             print("cost: ", cost)
-        elif command == '3': # TODO test
+        elif command == '3':
+
+
+
             print("random path")
             target_node = input("enter target node id (press enter to run without target): ")
             attack_budget = input("enter attack budget (press enter to run without target): ")

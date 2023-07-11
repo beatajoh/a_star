@@ -21,7 +21,7 @@ def all_neighbors_visited(neighbors, visited):
     unvisited_neighbors = set()#[]
     for neighbor in neighbors:
         if neighbor not in visited:
-            unvisited_neighbors.add(neighbor)#append(neighbor)
+            unvisited_neighbors.add(neighbor)
     return unvisited_neighbors
 
 '''
@@ -344,6 +344,7 @@ def random_path(start_node, index, target_node=None, cost_budget=None):
                 horizon.add(node_id)
                 came_from[node_id] = node
             if target_node != None and node == target_node:
+                print("the target, ", target_node,"was found!")
                 break
     return cost, index
    
