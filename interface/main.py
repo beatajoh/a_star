@@ -4,6 +4,11 @@ import attack_simulations as atksim
 import upload as upload_json_to_neo4j
 from py2neo import Graph
 
+import sys
+sys.path.insert(1, '/Users/beatajohansson/Projects/mgg')
+import mgg
+import mgg.atkgraph
+
 class console_colors:
     HEADER = '\033[95m'
     OKBLUE = '\033[94m'
@@ -237,7 +242,7 @@ def get_files_in_directory(directory):
 
 def main():
     print(f"{console_colors.HEADER}Attack Simulation Interface{console_colors.ENDC}")
-
+    
     # attack graph file (.json)
     directory = "../test_graphs/"
     file = choose_atkgraph_file(directory)
