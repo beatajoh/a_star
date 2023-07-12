@@ -244,19 +244,19 @@ def get_files_in_directory(directory):
             dict[i+1] = filename
     return dict
 
-def reachability_analysis(filename):
+def reachability_analysis(atkgraph_file, file):
     print("reachability-analysis")
     # load attack graph, from json to a List[AtkGraphNode] (class available in mgg.node)
-    graph = mgg.atkgraph.load_atkgraph(filename)
+    graph = mgg.atkgraph.load_atkgraph(atkgraph_file)
     # TODO fix so that it is possible to attatch multiple attackers
     id = input("attatch the attacker to node id (e.g. Network:8176711980537409:access): ")
     node_ids = [id]
-    # TODO fix the path name of the coreLang file
     corelang_filename ='../assets/org.mal-lang.coreLang-0.3.0.mar'
     corelang_file = mgg.securicad.load_language_specification(corelang_filename)
     # compute reachability from the attacker node
     graph = apocriphy.attach_attacker_and_compute(corelang_file, graph, node_ids)
     # modify the attacker node so that we can prune the untraversable nodes
+    # TODO fix so that it is possible to attatch multiple attackers
     attacker = graph[-1]
     attacker.is_traversable = True
     # prune untraversable nodes
@@ -264,8 +264,8 @@ def reachability_analysis(filename):
     # upload graph to Neo4j
     mgg.ingestor.neo4j.ingest(graph, delete=True)
     # save graph
-    mgg.atkgraph.save_atkgraph(graph, "../test_graphs/reachability_analysis_atkgraph.json")
-    print("reachable graph is saved to ../test_graphs/reachability_analysis_atkgraph.json")
+    mgg.atkgraph.save_atkgraph(graph, file)
+    print("reachable graph is saved to ", file)
 
 
 def main():
@@ -274,7 +274,11 @@ def main():
     # attack graph file (.json)
     directory = "../test_graphs/"
     file = choose_atkgraph_file(directory)
-    store_results_file = "../test_graphs/temp.json"
+
+    # files to store result attack graphs
+    step_by_step_results_file = "../test_graphs/step_by_step_graph.json"
+    attack_simulation_results_file = "../test_graphs/attack_simulation_graph.json"
+    reachability_analysis_results_file = "../test_graphs/reachablility_analysis_graph.json"
 
     # load the attack graph
     with open(file, 'r') as readfile:
@@ -299,11 +303,11 @@ def main():
         print_options(start_commands)
         command = input("choose: ")
         if command == '1':
-            step_by_step_attack_simulation(graph, atkgraph, index, store_results_file)
+            step_by_step_attack_simulation(graph, atkgraph, index, step_by_step_results_file)
         elif command == '2':
-            attack_simulation(graph, atkgraph, index, store_results_file)
+            attack_simulation(graph, atkgraph, index, attack_simulation_results_file)
         elif command == '3':
-            reachability_analysis(file)
+            reachability_analysis(file, reachability_analysis_results_file)
         elif command == '4':
             break
 
