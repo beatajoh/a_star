@@ -3,6 +3,11 @@ import heapq
 import random
 import re
 
+#import sys
+#sys.path.insert(1, '/Users/beatajohansson/Projects/mgg')
+#import tmp.apocriphy as apocriphy
+#is_and_node_reachable(lang: dict, graph: List[AtkGraphNode], node: AtkGraphNode)
+
 '''
 Discovers if the node is an 'and' or 'or' node.
 If the node is an 'or' node, the function returns True.
@@ -350,17 +355,20 @@ def random_path(start_node, index, target_node=None, cost_budget=None):
 
 
 def ao_star(atkgraph, start_node, index):
+    H = get_heuristics_for_nodes(index, start_node)
     weight = get_costs(index)
     and_nodes = get_and_nodes(atkgraph)
     adjacency_list = get_adjacency_list(atkgraph, and_nodes)
     print(adjacency_list)
     Updated_cost = update_cost(H, adjacency_list, weight)
-    shortest_path_str = shortest_path_ao_star(target_node, Updated_cost, H)
+    shortest_path_str = shortest_path_ao_star(start_node, Updated_cost, H)
     print(shortest_path_str)
     total_cost = calculate_shortest_path_cost(shortest_path_str, weight, H)
     return shortest_path_str, total_cost
 
+
     '''
+    # restructure the tree?
     h = get_heuristics_for_nodes(index, start_node)
     print(len(index))
     print(len(h))

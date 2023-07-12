@@ -11,18 +11,12 @@ import mgg.atkgraph
 import tmp.apocriphy as apocriphy
 import mgg.securicad
 import mgg.ingestor.neo4j
-#from tests.assets.coreLang import org.mal-lang.coreLang-0.3.0.mar
 
 class console_colors:
     HEADER = '\033[95m'
-    OKBLUE = '\033[94m'
-    OKCYAN = '\033[96m'
-    OKGREEN = '\033[92m'
-    WARNING = '\033[93m'
     FAIL = '\033[91m'
     ENDC = '\033[0m'
     BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
 
 start_commands = {
     "1": "step-by-step-attack",
@@ -35,10 +29,6 @@ step_by_step_attack_commands = {
     "1": "horizon",
     "2": "action",
     "3": "exit"
-    }
-
-action_commands = {
-    "1": "enter node id"
     }
 
 attack_simulation_commands = {
@@ -209,8 +199,6 @@ def attack_simulation(graph, atkgraph, index, file):
             upload_json_to_neo4j.upload_json_to_neo4j_database(file, graph)
         else: 
             print("no result")
-        
-
 
 def index_nodes_by_id(atkgraph):
     dict = {}
@@ -284,9 +272,6 @@ def main():
     with open(file, 'r') as readfile:
         atkgraph = json.load(readfile)
     
-    # TODO make a list of AtkgraphNodes using mgg node.py
-        
-    # TODO reachability analysis here with mgg functions
 
     # iterate over attack graph and find all dependency steps
     # TODO maybe this can be built when the attack graph is generated to save some time, O(n^3) right now
