@@ -246,16 +246,26 @@ def get_files_in_directory(directory):
 
 def reachability_analysis(filename):
     print("reachability-analysis")
+    # load attack graph, from json to a List[AtkGraphNode] (class available in mgg.node)
     graph = mgg.atkgraph.load_atkgraph(filename)
-    node_ids = ['UnknownSoftwareVulnerability:929864580059290:abuse']
-    for g in graph:
-        print(g)
-    corelang_filename ='/Users/beatajohansson/Projects/mgg/tests/assets/coreLang/org.mal-lang.coreLang-0.3.0.mar'
+    # TODO fix so that it is possible to attatch multiple attackers
+    id = input("attatch the attacker to node id (e.g. Network:8176711980537409:access): ")
+    node_ids = [id]
+    # TODO fix the path name of the coreLang file
+    corelang_filename ='../assets/org.mal-lang.coreLang-0.3.0.mar'
     corelang_file = mgg.securicad.load_language_specification(corelang_filename)
-    sub_graph = apocriphy.attach_attacker_and_compute(corelang_file, graph, node_ids)
-    mgg.ingestor.neo4j.ingest(sub_graph, delete=False)
-
-
+    # compute reachability from the attacker node
+    graph = apocriphy.attach_attacker_and_compute(corelang_file, graph, node_ids)
+    # modify the attacker node so that we can prune the untraversable nodes
+    attacker = graph[-1]
+    attacker.is_traversable = True
+    # prune untraversable nodes
+    graph = apocriphy.prune_untraversable(graph)
+    # upload graph to Neo4j
+    mgg.ingestor.neo4j.ingest(graph, delete=True)
+    # save graph
+    mgg.atkgraph.save_atkgraph(graph, "../test_graphs/reachability_analysis_atkgraph.json")
+    print("reachable graph is saved to ../test_graphs/reachability_analysis_atkgraph.json")
 
 
 def main():
