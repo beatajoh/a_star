@@ -51,7 +51,7 @@ def reconstruct_path(came_from, current, start_node, costs, index, visited=set()
             # condition for 'and' node       
             if len(current)>1:
                 for node in current:
-                    path_cost, _,  = reconstruct_path(came_from, node, start_node, costs, index, visited)
+                    path_cost, _, _, _ = reconstruct_path(came_from, node, start_node, costs, index, visited)
                     cost += path_cost+costs[old_current]
                     index[old_current]["path_links"].append(old_current)
                 break
@@ -62,7 +62,8 @@ def reconstruct_path(came_from, current, start_node, costs, index, visited=set()
                     visited.add(old_current)
                 if old_current not in index[current]["path_links"]:
                     index[current]["path_links"].append(old_current) 
-    return cost, index, old_current
+        visited.add(start_node)
+    return cost, index, visited, old_current
     
 
 '''
@@ -351,7 +352,7 @@ def random_path(start_node, index, target_node=None, cost_budget=None):
             if target_node != None and node == target_node:
                 print("the target, ", target_node,"was found!")
                 break
-    return cost, index
+    return cost, index, visited
 
 
 def ao_star(atkgraph, start_node, index):

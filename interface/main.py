@@ -67,7 +67,7 @@ def step_by_step_attack_simulation(graph, atkgraph, index, file):
         elif command == '2':
             # choose next node name to visit       
             node_options = get_horizon_w_commands(horizon)  # TODO print the node type
-            print_options(node_options)
+            print_horizon(horizon, index)
             option = input("choose node to attack: ")
             attack_node = node_options[int(option)]
 
@@ -166,6 +166,7 @@ def attack_simulation(graph, atkgraph, index, file):
             if result != None:
                 total_cost = result[0]
                 path = result[1]
+                nodes = result[2]
                 print("cost: ", total_cost)
         elif command == '2':    #TODO add to the rest
             print("shortest path AO star")
@@ -188,14 +189,15 @@ def attack_simulation(graph, atkgraph, index, file):
             if result != None:
                 total_cost = result[0]
                 path = result[1]
+                nodes = result[2]
                 print("cost: ", total_cost)
         elif command == '4': # TODO for this subgraph to be correct we should also do a reachability analysis before... and check the dependency steps for the and nodes
             print("attack range BFS")
             max_distance = int(input("enter maximum distance (cost): "))
             path = atksim.bfs(start_node, index, max_distance)
-        
+            nodes = path.keys()
         if path != None:
-            add_nodes_to_json_file(file, path.keys(), path)
+            add_nodes_to_json_file(file, nodes, path)
             upload_json_to_neo4j.upload_json_to_neo4j_database(file, graph)
         else: 
             print("no result")
