@@ -8,6 +8,10 @@ import sys
 sys.path.insert(1, '/Users/beatajohansson/Projects/mgg')
 import mgg
 import mgg.atkgraph
+import tmp.apocriphy as apocriphy
+import mgg.securicad
+import mgg.ingestor.neo4j
+#from tests.assets.coreLang import org.mal-lang.coreLang-0.3.0.mar
 
 class console_colors:
     HEADER = '\033[95m'
@@ -23,7 +27,8 @@ class console_colors:
 start_commands = {
     "1": "step-by-step-attack",
     "2": "attack-simulation",
-    "3": "exit"
+    "3": "reachability-analysis",
+    "4": "exit"
     }
 
 step_by_step_attack_commands = {
@@ -239,6 +244,19 @@ def get_files_in_directory(directory):
             dict[i+1] = filename
     return dict
 
+def reachability_analysis(filename):
+    print("reachability-analysis")
+    graph = mgg.atkgraph.load_atkgraph(filename)
+    node_ids = ['UnknownSoftwareVulnerability:929864580059290:abuse']
+    for g in graph:
+        print(g)
+    corelang_filename ='/Users/beatajohansson/Projects/mgg/tests/assets/coreLang/org.mal-lang.coreLang-0.3.0.mar'
+    corelang_file = mgg.securicad.load_language_specification(corelang_filename)
+    sub_graph = apocriphy.attach_attacker_and_compute(corelang_file, graph, node_ids)
+    mgg.ingestor.neo4j.ingest(sub_graph, delete=False)
+
+
+
 
 def main():
     print(f"{console_colors.HEADER}Attack Simulation Interface{console_colors.ENDC}")
@@ -275,6 +293,8 @@ def main():
         elif command == '2':
             attack_simulation(graph, atkgraph, index, store_results_file)
         elif command == '3':
+            reachability_analysis(file)
+        elif command == '4':
             break
 
 if __name__=='__main__':
