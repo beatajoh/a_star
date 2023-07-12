@@ -172,9 +172,7 @@ def attack_simulation(graph, atkgraph, index, file):
             print("shortest path AO star")
             #target_node = input("enter target node id: ")
             #path, cost = atksim.ao_star(atkgraph, target_node, index)
-            #print("cost: ", cost)
-            target_node = "Application:7219598629313512:networkConnect"
-            path, cost = atksim.ao_star(atkgraph, target_node, index)    
+            #print("cost: ", cost) 
         elif command == '3':
             print("random path")
             target_node = input("enter target node id (press enter to run without target): ")
@@ -191,7 +189,7 @@ def attack_simulation(graph, atkgraph, index, file):
                 path = result[1]
                 nodes = result[2]
                 print("cost: ", total_cost)
-        elif command == '4': # TODO for this subgraph to be correct we should also do a reachability analysis before... and check the dependency steps for the and nodes
+        elif command == '4':
             print("attack range BFS")
             max_distance = int(input("enter maximum distance (cost): "))
             path = atksim.bfs(start_node, index, max_distance)
@@ -260,43 +258,42 @@ def reachability_analysis(atkgraph_file, file):
 
 def main():
     print(f"{console_colors.HEADER}Attack Simulation Interface{console_colors.ENDC}")
-    
-    # attack graph file (.json)
-    directory = "../test_graphs/"
-    file = choose_atkgraph_file(directory)
-
-    # files to store result attack graphs
-    step_by_step_results_file = "../test_graphs/step_by_step_graph.json"
-    attack_simulation_results_file = "../test_graphs/attack_simulation_graph.json"
-    reachability_analysis_results_file = "../test_graphs/reachablility_analysis_graph.json"
-
-    # load the attack graph
-    with open(file, 'r') as readfile:
-        atkgraph = json.load(readfile)
-    
-
-    # iterate over attack graph and find all dependency steps
-    # TODO maybe this can be built when the attack graph is generated to save some time, O(n^3) right now
-    atkgraph = get_parents_for_and_nodes(atkgraph)
-    
-    # build a dictionary with node id as keys and the entire json node element as the values
-    # we add an attribute called "path_links" which can be updated to store the results for the path
-    index = index_nodes_by_id(atkgraph)
-
-    # connect to Neo4j graph database
-    graph = Graph("bolt://localhost:7687", auth=("neo4j", "mgg12345!"))
-
     while True:
-        print_options(start_commands)
-        command = input("choose: ")
-        if command == '1':
-            step_by_step_attack_simulation(graph, atkgraph, index, step_by_step_results_file)
-        elif command == '2':
-            attack_simulation(graph, atkgraph, index, attack_simulation_results_file)
-        elif command == '3':
-            reachability_analysis(file, reachability_analysis_results_file)
-        elif command == '4':
-            break
+        # attack graph file (.json)
+        directory = "../test_graphs/"
+        file = choose_atkgraph_file(directory)
+
+        # files to store result attack graphs
+        step_by_step_results_file = "../test_graphs/step_by_step_graph.json"
+        attack_simulation_results_file = "../test_graphs/attack_simulation_graph.json"
+        reachability_analysis_results_file = "../test_graphs/reachablility_analysis_graph.json"
+
+        # load the attack graph
+        with open(file, 'r') as readfile:
+            atkgraph = json.load(readfile)
+        
+        # iterate over attack graph and find all dependency steps
+        # TODO maybe this can be built when the attack graph is generated to save some time, O(n^3) right now
+        atkgraph = get_parents_for_and_nodes(atkgraph)
+        
+        # build a dictionary with node id as keys and the entire json node element as the values
+        # we add an attribute called "path_links" which can be updated to store the results for the path
+        index = index_nodes_by_id(atkgraph)
+
+        # connect to Neo4j graph database
+        graph = Graph("bolt://localhost:7687", auth=("neo4j", "mgg12345!"))
+
+        while True:
+            print_options(start_commands)
+            command = input("choose: ")
+            if command == '1':
+                step_by_step_attack_simulation(graph, atkgraph, index, step_by_step_results_file)
+            elif command == '2':
+                attack_simulation(graph, atkgraph, index, attack_simulation_results_file)
+            elif command == '3':
+                reachability_analysis(file, reachability_analysis_results_file)
+            elif command == '4':
+                break
 
 if __name__=='__main__':
     main()

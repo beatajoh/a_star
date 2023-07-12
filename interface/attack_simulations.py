@@ -3,11 +3,6 @@ import heapq
 import random
 import re
 
-#import sys
-#sys.path.insert(1, '/Users/beatajohansson/Projects/mgg')
-#import tmp.apocriphy as apocriphy
-#is_and_node_reachable(lang: dict, graph: List[AtkGraphNode], node: AtkGraphNode)
-
 '''
 Discovers if the node is an 'and' or 'or' node.
 If the node is an 'or' node, the function returns True.
@@ -15,6 +10,8 @@ If the node is an 'and' node, the function returns True if all parent nodes has 
 '''
 def all_parents_visited(node, visited, index):
     if is_and_node(node, index):
+        if not is_reachable(node, index):
+            return False
         # if all the dependency steps (parents) are visited return true,
         # otherwise return false
         for parents in index[node]["parent_list"]:
@@ -23,11 +20,14 @@ def all_parents_visited(node, visited, index):
     return True
     
 def all_neighbors_visited(neighbors, visited): 
-    unvisited_neighbors = set()#[]
+    unvisited_neighbors = set()
     for neighbor in neighbors:
         if neighbor not in visited:
             unvisited_neighbors.add(neighbor)
     return unvisited_neighbors
+
+def is_reachable(node, index):
+    return index[node]["is_reachable"]
 
 '''
 Returns true if the node is an and node.
