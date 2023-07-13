@@ -1,8 +1,7 @@
 import os
 import json
 import attack_simulations as atksim
-import upload as upload_json_to_neo4j
-from py2neo import Graph
+from py2neo import Graph, Node, Relationship
 
 import sys
 sys.path.insert(1, '/Users/beatajohansson/Projects/mgg') #TODO change path
@@ -41,6 +40,46 @@ attack_simulation_commands = {
     "4": "attack-range-BFS",
     "5": "exit"
     }
+
+def upload_json_to_neo4j_database(file, graph):
+    """
+    Uploads the json file to Neo4j.
+
+    Arguments:
+    file            - json file with the attack graph.
+    graph           - connection to the graph database in Neo4j.
+    """
+    nodes = {}
+    graph.delete_all()
+    with open(file, 'r') as file:
+        data = json.load(file)
+    for node in data:
+        cost_value = 0
+        if node["ttc"] != None:
+            cost_value = node["ttc"]["cost"][0]
+        # build Node object
+        node_obj = Node(
+            str(node["horizon"]),
+            name = node["id"],
+            type = node["type"],
+            objclass = node["objclass"],
+            objid = node["objid"],
+            atkname = node["atkname"],
+            is_traversable=node["is_traversable"],
+            is_reachable=node["is_reachable"],
+            graph_type = "attackgraph",
+            cost = cost_value
+        )
+        graph.create(node_obj)
+        nodes[node["id"]] = node_obj
+    for node in data:
+        links = node["path_links"]
+        for link in links:
+            if link in nodes.keys():
+                from_node = nodes[node["id"]]
+                to_node = nodes[link]
+                relationship = Relationship(from_node, "Relationship", to_node)
+                graph.create(relationship)
 
 def step_by_step_attack_simulation(graph, attacker_node_id, index, file):
     """
@@ -84,7 +123,7 @@ def step_by_step_attack_simulation(graph, attacker_node_id, index, file):
                 # store the path and horizon to file
                 add_nodes_to_json_file(file, visited, index)   
                 add_horizon_nodes_to_json_file(file, horizon, index)
-                upload_json_to_neo4j.upload_json_to_neo4j_database(file, graph)
+                upload_json_to_neo4j_database(file, graph)
             else:
                 print("could not attack this node because all dependency steps has not been visited")
             print_horizon(horizon, index)
@@ -264,7 +303,7 @@ def attack_simulation(graph, attacker_node_id, index, file):
             nodes = path.keys()
         if path != None:
             add_nodes_to_json_file(file, nodes, path)
-            upload_json_to_neo4j.upload_json_to_neo4j_database(file, graph)
+            upload_json_to_neo4j_database(file, graph)
         else: 
             print("no result")
 
