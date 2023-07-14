@@ -255,29 +255,42 @@ def random_path(start_node, index, target_node=None, cost_budget=None):
     visited.add(start_node)
     came_from = dict.fromkeys(node_ids, '')
     horizon = set()
+    target_found = False
+    unreachable_horizon_nodes = set()
     # initialize the attack horizon
     for node_id in index[start_node]["links"]:
         horizon.add(node_id)
         came_from[node_id] = start_node
     costs = get_costs(index)
     cost = 0
-    while len(horizon)>0:
+    if target_node == None and cost_budget == None:
+        return cost, index, visited
+    while len(horizon) > 0 and unreachable_horizon_nodes != horizon:
         node = random.choice(list(horizon))
         # attack unvisited node
         if all_parents_visited(node, visited, index):
-            if cost_budget != None and cost+costs[node]>cost_budget:
+            if cost_budget != None and cost+costs[node] > cost_budget:
                 break
             visited.add(node)
             index[came_from[node]]["path_links"].append(node) 
             cost += costs[node]
+            if node in unreachable_horizon_nodes:
+                unreachable_horizon_nodes.remove(node)
             # update the horizon
             horizon.remove(node)
             for node_id in index[node]['links']:
                 horizon.add(node_id)
                 came_from[node_id] = node
+            # check if the target was selected
             if target_node != None and node == target_node:
+                target_found = True
                 print("the target,", target_node,"was found!")
                 break
+        else:
+            unreachable_horizon_nodes.add(node)
+    # check if the target never was selected in the path
+    if target_node != None and target_found == False:
+        print("the target,", target_node, "was not found!")
     return cost, index, visited
 
 # all AO* functions are below here:
