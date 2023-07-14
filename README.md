@@ -1,13 +1,8 @@
-**Note to andrei: look at find_path.py, a_star() function.**
+## Interface
+interactive interface for running attack simulations on attack graphs.
 
-# shortest path and random path
+## other
+contains all the files for shortest path, random path, and ao*.
 
-Shortest path implementation with a* with and node logic.
-
-Random path (option 1)
-
-To test:
-- clone the repository
-- run: python main.py
-
-The test_graphs directory contains some test files and a copy (with 'parent' links for and nodes) should be written to the test_graph/atkgraph.json file
+## ttc_to_cost_task
+contains files for ttc -> cost

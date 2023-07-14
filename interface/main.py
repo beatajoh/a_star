@@ -2,9 +2,8 @@ import os
 import json
 import attack_simulations as atksim
 from py2neo import Graph, Node, Relationship
-
 import sys
-sys.path.insert(1, '/Users/beatajohansson/Projects/mgg') #TODO change path
+sys.path.insert(1, '../../mgg')
 import mgg
 import mgg.atkgraph
 import tmp.apocriphy as apocriphy
@@ -404,7 +403,7 @@ def reachability_analysis_with_pruning(atkgraph_file, file):
     print("reachability-analysis-with-pruning")
     # TODO fix so that it is possible to attatch multiple attackers
     id = input("attatch the attacker to node id (e.g. Network:8176711980537409:access): ")
-    graph = reachability_analysis(atkgraph_file, file, id)
+    graph = reachability_analysis(atkgraph_file, id)
     # modify the attacker node so that we can prune the untraversable nodes
     attacker = graph[-1]
     attacker.is_reachable = True
@@ -439,7 +438,7 @@ def main():
         # build a dictionary with node id as keys and the entire json node element as the values
         # we add an attribute called "path_links" which can be updated to store the results for the paths from the attack simulations
         index = index_nodes_by_id(atkgraph)
-
+        
         # connect to Neo4j graph database
         graph = Graph("bolt://localhost:7687", auth=("neo4j", "mgg12345!"))
 
