@@ -385,7 +385,7 @@ def reachability_analysis(atkgraph_file, node_id):
     graph = mgg.atkgraph.load_atkgraph(atkgraph_file)
     # TODO fix so that it is possible to attatch multiple attackers
     node_ids = [node_id] 
-    corelang_filename ='../assets/org.mal-lang.coreLang-0.3.0.mar'
+    corelang_filename ='assets/org.mal-lang.coreLang-0.3.0.mar'
     corelang_file = mgg.securicad.load_language_specification(corelang_filename)
     # compute reachability from the attacker node
     graph = apocriphy.attach_attacker_and_compute(corelang_file, graph, node_ids)
@@ -420,13 +420,13 @@ def main():
     print(f"{console_colors.HEADER}Attack Simulation Interface{console_colors.ENDC}")
     while True:
         # attack graph file (.json)
-        directory = "../test_graphs/"
+        directory = "test_graphs/"
         file = choose_atkgraph_file(directory)
 
         # files to store result attack graphs
-        step_by_step_results_file = "../test_graphs/step_by_step_graph.json"
-        attack_simulation_results_file = "../test_graphs/attack_simulation_graph.json"
-        reachability_analysis_results_file = "../test_graphs/reachablility_analysis_graph.json"
+        step_by_step_results_file = "test_graphs/step_by_step_graph.json"
+        attack_simulation_results_file = "test_graphs/attack_simulation_graph.json"
+        reachability_analysis_results_file = "test_graphs/reachablility_analysis_graph.json"
 
         # load the attack graph
         with open(file, 'r') as readfile:

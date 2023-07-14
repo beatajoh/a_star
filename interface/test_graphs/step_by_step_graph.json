@@ -1,5 +1,66 @@
 [
     {
+        "id": "Attacker:6417249322885591:firstSteps",
+        "type": "or",
+        "objclass": "Attacker",
+        "objid": "6417249322885591",
+        "atkname": "firstSteps",
+        "ttc": null,
+        "links": [
+            "Network:8176711980537409:access"
+        ],
+        "is_reachable": true,
+        "defense_status": null,
+        "graph_type": "attackgraph",
+        "is_traversable": false,
+        "required_steps": null,
+        "extra": null,
+        "parent_list": [],
+        "path_links": [
+            "Network:8176711980537409:access"
+        ],
+        "horizon": false
+    },
+    {
+        "id": "Network:8176711980537409:access",
+        "type": "or",
+        "objclass": "Network",
+        "objid": "8176711980537409",
+        "atkname": "access",
+        "ttc": {
+            "type": "function",
+            "name": "Exponential",
+            "arguments": [
+                0.4
+            ],
+            "cost": [
+                7
+            ]
+        },
+        "links": [
+            "Network:8176711980537409:successfulAccess"
+        ],
+        "is_reachable": true,
+        "defense_status": null,
+        "graph_type": "attackgraph",
+        "is_traversable": false,
+        "required_steps": [
+            "-:bypassAccessControl",
+            "-:access"
+        ],
+        "extra": null,
+        "parent_list": [
+            "Application:2213271547579497:accessNetworkAndConnections",
+            "Network:8176711980537409:attemptAccess",
+            "Application:7219598629313512:accessNetworkAndConnections",
+            "Attacker:6417249322885591:firstSteps"
+        ],
+        "path_links": [
+            "Network:8176711980537409:successfulAccess"
+        ],
+        "horizon": false
+    },
+    {
         "id": "Network:8176711980537409:successfulAccess",
         "type": "or",
         "objclass": "Network",
@@ -52,6 +113,64 @@
         "horizon": false
     },
     {
+        "id": "Application:7219598629313512:networkRequestConnect",
+        "type": "or",
+        "objclass": "Application",
+        "objid": "7219598629313512",
+        "atkname": "networkRequestConnect",
+        "ttc": {
+            "type": "function",
+            "name": "Exponential",
+            "arguments": [
+                0.8
+            ],
+            "cost": [
+                3
+            ]
+        },
+        "links": [],
+        "is_reachable": true,
+        "defense_status": null,
+        "graph_type": "attackgraph",
+        "is_traversable": false,
+        "required_steps": [],
+        "extra": null,
+        "parent_list": [
+            "Network:8176711980537409:successfulAccess"
+        ],
+        "path_links": [],
+        "horizon": false
+    },
+    {
+        "id": "Network:8176711980537409:networkForwarding",
+        "type": "or",
+        "objclass": "Network",
+        "objid": "8176711980537409",
+        "atkname": "networkForwarding",
+        "ttc": {
+            "type": "function",
+            "name": "Exponential",
+            "arguments": [
+                1.0
+            ],
+            "cost": [
+                1
+            ]
+        },
+        "links": [],
+        "is_reachable": true,
+        "defense_status": null,
+        "graph_type": "attackgraph",
+        "is_traversable": false,
+        "required_steps": [],
+        "extra": null,
+        "parent_list": [
+            "Network:8176711980537409:successfulAccess"
+        ],
+        "path_links": [],
+        "horizon": false
+    },
+    {
         "id": "Network:8176711980537409:denialOfService",
         "type": "or",
         "objclass": "Network",
@@ -84,67 +203,6 @@
         "path_links": [
             "Application:2213271547579497:denyFromConnectionRule",
             "Application:7219598629313512:denyFromConnectionRule"
-        ],
-        "horizon": false
-    },
-    {
-        "id": "Network:8176711980537409:access",
-        "type": "or",
-        "objclass": "Network",
-        "objid": "8176711980537409",
-        "atkname": "access",
-        "ttc": {
-            "type": "function",
-            "name": "Exponential",
-            "arguments": [
-                0.4
-            ],
-            "cost": [
-                7
-            ]
-        },
-        "links": [
-            "Network:8176711980537409:successfulAccess"
-        ],
-        "is_reachable": true,
-        "defense_status": null,
-        "graph_type": "attackgraph",
-        "is_traversable": false,
-        "required_steps": [
-            "-:bypassAccessControl",
-            "-:access"
-        ],
-        "extra": null,
-        "parent_list": [
-            "Application:2213271547579497:accessNetworkAndConnections",
-            "Network:8176711980537409:attemptAccess",
-            "Application:7219598629313512:accessNetworkAndConnections",
-            "Attacker:6417249322885591:firstSteps"
-        ],
-        "path_links": [
-            "Network:8176711980537409:successfulAccess"
-        ],
-        "horizon": false
-    },
-    {
-        "id": "Attacker:6417249322885591:firstSteps",
-        "type": "or",
-        "objclass": "Attacker",
-        "objid": "6417249322885591",
-        "atkname": "firstSteps",
-        "ttc": null,
-        "links": [
-            "Network:8176711980537409:access"
-        ],
-        "is_reachable": true,
-        "defense_status": null,
-        "graph_type": "attackgraph",
-        "is_traversable": false,
-        "required_steps": null,
-        "extra": null,
-        "parent_list": [],
-        "path_links": [
-            "Network:8176711980537409:access"
         ],
         "horizon": false
     },
@@ -183,140 +241,6 @@
         "path_links": [
             "Network:8176711980537409:reverseReach"
         ],
-        "horizon": true
-    },
-    {
-        "id": "Network:8176711980537409:networkForwarding",
-        "type": "or",
-        "objclass": "Network",
-        "objid": "8176711980537409",
-        "atkname": "networkForwarding",
-        "ttc": {
-            "type": "function",
-            "name": "Exponential",
-            "arguments": [
-                1.0
-            ],
-            "cost": [
-                1
-            ]
-        },
-        "links": [],
-        "is_reachable": true,
-        "defense_status": null,
-        "graph_type": "attackgraph",
-        "is_traversable": false,
-        "required_steps": [],
-        "extra": null,
-        "parent_list": [
-            "Network:8176711980537409:successfulAccess"
-        ],
-        "path_links": [],
-        "horizon": true
-    },
-    {
-        "id": "Application:7219598629313512:networkConnect",
-        "type": "or",
-        "objclass": "Application",
-        "objid": "7219598629313512",
-        "atkname": "networkConnect",
-        "ttc": {
-            "type": "function",
-            "name": "Exponential",
-            "arguments": [
-                0.3
-            ],
-            "cost": [
-                8
-            ]
-        },
-        "links": [
-            "Application:7219598629313512:networkConnectWithoutTriggeringVulnerabilities",
-            "Application:7219598629313512:attemptUseVulnerability",
-            "UnknownSoftwareVulnerability:929864580059290:networkAccessAchieved",
-            "SoftwareVulnerability:892728578927324:networkAccessAchieved",
-            "Application:7219598629313512:softwareProductVulnerabilityNetworkAccessAchieved"
-        ],
-        "is_reachable": true,
-        "defense_status": null,
-        "graph_type": "attackgraph",
-        "is_traversable": false,
-        "required_steps": [
-            "-:networkConnect",
-            "SoftwareVulnerability:networkAccessRequired"
-        ],
-        "extra": null,
-        "parent_list": [
-            "Network:8176711980537409:successfulAccess",
-            "Application:7219598629313512:networkConnectFromReverseTakeover",
-            "Application:7219598629313512:networkRespondConnect",
-            "Application:7219598629313512:unsafeUserActivityConnect"
-        ],
-        "path_links": [
-            "Application:7219598629313512:networkConnectWithoutTriggeringVulnerabilities",
-            "Application:7219598629313512:attemptUseVulnerability",
-            "UnknownSoftwareVulnerability:929864580059290:networkAccessAchieved",
-            "SoftwareVulnerability:892728578927324:networkAccessAchieved",
-            "Application:7219598629313512:softwareProductVulnerabilityNetworkAccessAchieved"
-        ],
-        "horizon": true
-    },
-    {
-        "id": "Application:7219598629313512:networkRequestConnect",
-        "type": "or",
-        "objclass": "Application",
-        "objid": "7219598629313512",
-        "atkname": "networkRequestConnect",
-        "ttc": {
-            "type": "function",
-            "name": "Exponential",
-            "arguments": [
-                0.8
-            ],
-            "cost": [
-                3
-            ]
-        },
-        "links": [],
-        "is_reachable": true,
-        "defense_status": null,
-        "graph_type": "attackgraph",
-        "is_traversable": false,
-        "required_steps": [],
-        "extra": null,
-        "parent_list": [
-            "Network:8176711980537409:successfulAccess"
-        ],
-        "path_links": [],
-        "horizon": true
-    },
-    {
-        "id": "Application:2213271547579497:networkRequestConnect",
-        "type": "or",
-        "objclass": "Application",
-        "objid": "2213271547579497",
-        "atkname": "networkRequestConnect",
-        "ttc": {
-            "type": "function",
-            "name": "Exponential",
-            "arguments": [
-                0.1
-            ],
-            "cost": [
-                10
-            ]
-        },
-        "links": [],
-        "is_reachable": true,
-        "defense_status": null,
-        "graph_type": "attackgraph",
-        "is_traversable": false,
-        "required_steps": [],
-        "extra": null,
-        "parent_list": [
-            "Network:8176711980537409:successfulAccess"
-        ],
-        "path_links": [],
         "horizon": true
     },
     {
@@ -404,6 +328,35 @@
         "horizon": true
     },
     {
+        "id": "Application:2213271547579497:networkRequestConnect",
+        "type": "or",
+        "objclass": "Application",
+        "objid": "2213271547579497",
+        "atkname": "networkRequestConnect",
+        "ttc": {
+            "type": "function",
+            "name": "Exponential",
+            "arguments": [
+                0.1
+            ],
+            "cost": [
+                10
+            ]
+        },
+        "links": [],
+        "is_reachable": true,
+        "defense_status": null,
+        "graph_type": "attackgraph",
+        "is_traversable": false,
+        "required_steps": [],
+        "extra": null,
+        "parent_list": [
+            "Network:8176711980537409:successfulAccess"
+        ],
+        "path_links": [],
+        "horizon": true
+    },
+    {
         "id": "Application:2213271547579497:denyFromConnectionRule",
         "type": "and",
         "objclass": "Application",
@@ -441,6 +394,53 @@
         ],
         "path_links": [
             "Application:2213271547579497:deny"
+        ],
+        "horizon": true
+    },
+    {
+        "id": "Application:7219598629313512:networkConnect",
+        "type": "or",
+        "objclass": "Application",
+        "objid": "7219598629313512",
+        "atkname": "networkConnect",
+        "ttc": {
+            "type": "function",
+            "name": "Exponential",
+            "arguments": [
+                0.3
+            ],
+            "cost": [
+                8
+            ]
+        },
+        "links": [
+            "Application:7219598629313512:networkConnectWithoutTriggeringVulnerabilities",
+            "Application:7219598629313512:attemptUseVulnerability",
+            "UnknownSoftwareVulnerability:929864580059290:networkAccessAchieved",
+            "SoftwareVulnerability:892728578927324:networkAccessAchieved",
+            "Application:7219598629313512:softwareProductVulnerabilityNetworkAccessAchieved"
+        ],
+        "is_reachable": true,
+        "defense_status": null,
+        "graph_type": "attackgraph",
+        "is_traversable": false,
+        "required_steps": [
+            "-:networkConnect",
+            "SoftwareVulnerability:networkAccessRequired"
+        ],
+        "extra": null,
+        "parent_list": [
+            "Network:8176711980537409:successfulAccess",
+            "Application:7219598629313512:networkConnectFromReverseTakeover",
+            "Application:7219598629313512:networkRespondConnect",
+            "Application:7219598629313512:unsafeUserActivityConnect"
+        ],
+        "path_links": [
+            "Application:7219598629313512:networkConnectWithoutTriggeringVulnerabilities",
+            "Application:7219598629313512:attemptUseVulnerability",
+            "UnknownSoftwareVulnerability:929864580059290:networkAccessAchieved",
+            "SoftwareVulnerability:892728578927324:networkAccessAchieved",
+            "Application:7219598629313512:softwareProductVulnerabilityNetworkAccessAchieved"
         ],
         "horizon": true
     },
