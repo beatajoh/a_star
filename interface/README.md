@@ -2,7 +2,7 @@
 
 ## PURPOSE
 
-This is an interactive interface forrunning attack simulations on the mgg-generated attack graphs.
+This is an interactive interface for running attack simulations on the mgg-generated attack graphs.
 
 ## INSTALLATION
 
