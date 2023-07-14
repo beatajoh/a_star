@@ -150,17 +150,16 @@ def bfs(source, index, max_distance):
     # Perform Breadth-First Search (BFS) from the start node
     while queue:
         node, distance = queue.popleft()
-        if distance > max_distance:
-            break
         # reset the "path_links" attribute
         index[node]["path_links"] = index[node]["links"]
         # Assign the distance from the source for each node
         nodes[node] = index[node]  
         # Explore the neighbors of the current node
         for link in index[node]["links"]:
-            if link not in visited:
+            distance = distance + index[link]['ttc']['cost'][0]
+            if link not in visited and distance <= max_distance :
                 visited.add(link)
-                queue.append((link, distance + index[link]['ttc']['cost'][0]))
+                queue.append((link, distance))
     return nodes
 
 def dijkstra(start_node, target_node, index):
@@ -255,29 +254,42 @@ def random_path(start_node, index, target_node=None, cost_budget=None):
     visited.add(start_node)
     came_from = dict.fromkeys(node_ids, '')
     horizon = set()
+    target_found = False
+    unreachable_horizon_nodes = set()
     # initialize the attack horizon
     for node_id in index[start_node]["links"]:
         horizon.add(node_id)
         came_from[node_id] = start_node
     costs = get_costs(index)
     cost = 0
-    while len(horizon)>0:
+    if target_node == None and cost_budget == None:
+        return cost, index, visited
+    while len(horizon) > 0 and unreachable_horizon_nodes != horizon:
         node = random.choice(list(horizon))
         # attack unvisited node
         if all_parents_visited(node, visited, index):
-            if cost_budget != None and cost+costs[node]>cost_budget:
+            if cost_budget != None and cost+costs[node] > cost_budget:
                 break
             visited.add(node)
             index[came_from[node]]["path_links"].append(node) 
             cost += costs[node]
+            if node in unreachable_horizon_nodes:
+                unreachable_horizon_nodes.remove(node)
             # update the horizon
             horizon.remove(node)
             for node_id in index[node]['links']:
                 horizon.add(node_id)
                 came_from[node_id] = node
+            # check if the target was selected
             if target_node != None and node == target_node:
+                target_found = True
                 print("the target,", target_node,"was found!")
                 break
+        else:
+            unreachable_horizon_nodes.add(node)
+    # check if the target never was selected in the path
+    if target_node != None and target_found == False:
+        print("the target,", target_node, "was not found!")
     return cost, index, visited
 
 # all AO* functions are below here:
