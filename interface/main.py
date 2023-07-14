@@ -373,7 +373,14 @@ def get_files_in_directory(path_to_directory):
             dict[i+1] = filename
     return dict
 
-def reachability_analysis(atkgraph_file, file, node_id):
+def reachability_analysis(atkgraph_file, node_id):
+    """
+    Applies the reachability functions from mgg.apocriphy to the attack graph. 
+
+    Arguments:
+    atkgraph_file               - the filename of the attack graph file.
+    node id                     - the node ID to attatch the attacker to.
+    """
     print("reachability-analysis")
     graph = mgg.atkgraph.load_atkgraph(atkgraph_file)
     # TODO fix so that it is possible to attatch multiple attackers
@@ -395,19 +402,10 @@ def reachability_analysis_with_pruning(atkgraph_file, file):
     file                        - the file to store the results to.
     """
     print("reachability-analysis-with-pruning")
-    # load attack graph, from json to a List[AtkGraphNode] (class available in mgg.node)
-    #graph = mgg.atkgraph.load_atkgraph(atkgraph_file)
     # TODO fix so that it is possible to attatch multiple attackers
     id = input("attatch the attacker to node id (e.g. Network:8176711980537409:access): ")
-    #node_ids = [id]
-    #corelang_filename ='../assets/org.mal-lang.coreLang-0.3.0.mar'
-    #corelang_file = mgg.securicad.load_language_specification(corelang_filename)
-    # compute reachability from the attacker node
-    #graph = apocriphy.attach_attacker_and_compute(corelang_file, graph, node_ids)
-
     graph = reachability_analysis(atkgraph_file, file, id)
     # modify the attacker node so that we can prune the untraversable nodes
-    # TODO fix so that it is possible to attatch multiple attackers
     attacker = graph[-1]
     attacker.is_reachable = True
     # prune untraversable nodes
@@ -417,7 +415,6 @@ def reachability_analysis_with_pruning(atkgraph_file, file):
     # save graph
     mgg.atkgraph.save_atkgraph(graph, file)
     print("reachable graph is saved to ", file)
-
 
 def main():
     print(f"{console_colors.HEADER}Attack Simulation Interface{console_colors.ENDC}")
@@ -458,7 +455,7 @@ def main():
             elif command == '3':
                 reachability_analysis_with_pruning(file, reachability_analysis_results_file)
             elif command == '4':
-                atkgraph = reachability_analysis(file, reachability_analysis_results_file, attacker_node_id)
+                atkgraph = reachability_analysis(file, attacker_node_id)
                 # save graph
                 mgg.atkgraph.save_atkgraph(atkgraph, reachability_analysis_results_file)
                 print("reachable graph is saved to ", reachability_analysis_results_file)
