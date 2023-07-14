@@ -150,17 +150,16 @@ def bfs(source, index, max_distance):
     # Perform Breadth-First Search (BFS) from the start node
     while queue:
         node, distance = queue.popleft()
-        if distance > max_distance:
-            break
         # reset the "path_links" attribute
         index[node]["path_links"] = index[node]["links"]
         # Assign the distance from the source for each node
         nodes[node] = index[node]  
         # Explore the neighbors of the current node
         for link in index[node]["links"]:
-            if link not in visited:
+            distance = distance + index[link]['ttc']['cost'][0]
+            if link not in visited and distance <= max_distance :
                 visited.add(link)
-                queue.append((link, distance + index[link]['ttc']['cost'][0]))
+                queue.append((link, distance))
     return nodes
 
 def dijkstra(start_node, target_node, index):
