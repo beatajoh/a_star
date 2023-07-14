@@ -23,8 +23,9 @@ class console_colors:
 start_commands = {
     "1": "step-by-step-attack",
     "2": "attack-simulation",
-    "3": "reachability-analysis",
-    "4": "exit"
+    "3": "reachability-analysis-with-pruning",
+    "4": "reachability-analysis",
+    "5": "exit"
     }
 
 step_by_step_attack_commands = {
@@ -372,6 +373,19 @@ def get_files_in_directory(path_to_directory):
             dict[i+1] = filename
     return dict
 
+def reachability_analysis(atkgraph_file, file, node_id):
+    print("reachability-analysis")
+    graph = mgg.atkgraph.load_atkgraph(atkgraph_file)
+    # TODO fix so that it is possible to attatch multiple attackers
+    node_ids = [node_id] 
+    corelang_filename ='../assets/org.mal-lang.coreLang-0.3.0.mar'
+    corelang_file = mgg.securicad.load_language_specification(corelang_filename)
+    # compute reachability from the attacker node
+    graph = apocriphy.attach_attacker_and_compute(corelang_file, graph, node_ids)
+    return graph
+
+
+
 def reachability_analysis_with_pruning(atkgraph_file, file):
     """
     Applies the reachability functions from mgg.apocriphy to the attack graph, and removes the unreachable nodes. 
@@ -380,16 +394,18 @@ def reachability_analysis_with_pruning(atkgraph_file, file):
     atkgraph_file               - the filename of the attack graph file.
     file                        - the file to store the results to.
     """
-    print("reachability-analysis")
+    print("reachability-analysis-with-pruning")
     # load attack graph, from json to a List[AtkGraphNode] (class available in mgg.node)
-    graph = mgg.atkgraph.load_atkgraph(atkgraph_file)
+    #graph = mgg.atkgraph.load_atkgraph(atkgraph_file)
     # TODO fix so that it is possible to attatch multiple attackers
     id = input("attatch the attacker to node id (e.g. Network:8176711980537409:access): ")
-    node_ids = [id]
-    corelang_filename ='../assets/org.mal-lang.coreLang-0.3.0.mar'
-    corelang_file = mgg.securicad.load_language_specification(corelang_filename)
+    #node_ids = [id]
+    #corelang_filename ='../assets/org.mal-lang.coreLang-0.3.0.mar'
+    #corelang_file = mgg.securicad.load_language_specification(corelang_filename)
     # compute reachability from the attacker node
-    graph = apocriphy.attach_attacker_and_compute(corelang_file, graph, node_ids)
+    #graph = apocriphy.attach_attacker_and_compute(corelang_file, graph, node_ids)
+
+    graph = reachability_analysis(atkgraph_file, file, id)
     # modify the attacker node so that we can prune the untraversable nodes
     # TODO fix so that it is possible to attatch multiple attackers
     attacker = graph[-1]
@@ -420,11 +436,11 @@ def main():
             atkgraph = json.load(readfile)
         
         # iterate over attack graph and find all dependency steps
-        # TODO maybe this can be built when the attack graph is generated to save some time, O(n^3) right now
+        # TODO maybe this can be built when the attack graph is generated to save some time, O(n^3)? right now
         atkgraph = get_parents_for_and_nodes(atkgraph)
         
         # build a dictionary with node id as keys and the entire json node element as the values
-        # we add an attribute called "path_links" which can be updated to store the results for the path
+        # we add an attribute called "path_links" which can be updated to store the results for the paths from the attack simulations
         index = index_nodes_by_id(atkgraph)
 
         # connect to Neo4j graph database
@@ -442,6 +458,13 @@ def main():
             elif command == '3':
                 reachability_analysis_with_pruning(file, reachability_analysis_results_file)
             elif command == '4':
+                atkgraph = reachability_analysis(file, reachability_analysis_results_file, attacker_node_id)
+                # save graph
+                mgg.atkgraph.save_atkgraph(atkgraph, reachability_analysis_results_file)
+                print("reachable graph is saved to ", reachability_analysis_results_file)
+                # upload graph to Neo4j
+                mgg.ingestor.neo4j.ingest(atkgraph, delete=True)
+            elif command == '5':
                 break
 
 if __name__=='__main__':
