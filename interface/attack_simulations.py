@@ -283,13 +283,13 @@ def random_path(start_node, index, target_node=None, cost_budget=None):
             # check if the target was selected
             if target_node != None and node == target_node:
                 target_found = True
-                print("the target,", target_node,"was found!")
+                print("The target,", target_node,"was found!")
                 break
         else:
             unreachable_horizon_nodes.add(node)
     # check if the target never was selected in the path
     if target_node != None and target_found == False:
-        print("the target,", target_node, "was not found!")
+        print("The target,", target_node, "was not found!")
     return cost, index, visited
 
 # all AO* functions are below here:
@@ -297,7 +297,6 @@ def random_path(start_node, index, target_node=None, cost_budget=None):
 def ao_star(atkgraph, start_node, index):
     """
     AO* main function.
-    TODO connect this to the rest of the code?
     """
     H = get_heuristics_for_nodes(index, start_node)
     weight = get_costs(index)
@@ -448,5 +447,5 @@ def get_heuristics_for_nodes(index, target_node):
             if parent not in visited:
                 visited.add(parent)
                 queue.append((parent, distance + 1))  # Increment the distance by 1 for each neighbor
-    print("graph",i)
+    print("Graph",i)
     return heuristics

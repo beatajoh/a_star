@@ -91,7 +91,7 @@ def step_by_step_attack_simulation(graph, attacker_node_id, index, file):
     index                - a dictionary on the form {node ID: node as dictionary, ...}.
     file                 - name of the file to store the result to.
     """
-    print(f"{console_colors.HEADER}step-by-step-attack{console_colors.ENDC}")
+    print(f"{console_colors.HEADER}Step by step attack{console_colors.ENDC}")
 
     # add all links to the path_links attribute
     for key in index.keys():
@@ -106,14 +106,14 @@ def step_by_step_attack_simulation(graph, attacker_node_id, index, file):
         horizon = update_horizon(node, horizon, index)
     while True:
         print_options(step_by_step_attack_commands)
-        command = input("choose: ")
+        command = input("Choose: ")
         if command == '1':
             print_horizon(horizon, index)
         elif command == '2':
             # choose next node name to visit       
             node_options = get_horizon_w_commands(horizon)  # TODO print the node type
             print_horizon(horizon, index)
-            option = input("choose node to attack: ")
+            option = input("Choose a node (id) to attack: ")
             attack_node = node_options[int(option)]
             # update horizon
             if attack_node in horizon and atksim.all_parents_visited(attack_node, visited, index):
@@ -125,7 +125,8 @@ def step_by_step_attack_simulation(graph, attacker_node_id, index, file):
                 add_horizon_nodes_to_json_file(file, horizon, index)
                 upload_json_to_neo4j_database(file, graph)
             else:
-                print("could not attack this node because all dependency steps has not been visited")
+                print("The dependency steps for ", attack_node, " has not been visited")
+                print("The node was not added to the path")
             print_horizon(horizon, index)
         elif command == '3':
             break
@@ -210,7 +211,8 @@ def print_horizon(horizon, index):
     """
     print(f"{console_colors.FAIL}Attacker Horizon{console_colors.ENDC}")
     for i, node in enumerate(horizon):
-        print(f"{console_colors.BOLD}", "(", i+1, ")", node, index[node]["type"])
+        #print(f"{console_colors.BOLD}", "(", i+1, ")", node, index[node]["type"])
+        print("(", i+1, ")", node, index[node]["type"])
     print(f"{console_colors.ENDC}")
 
 
@@ -251,11 +253,11 @@ def attack_simulation(graph, attacker_node_id, index, file):
     index                - a dictionary on the form {node ID: node as dictionary, ...}.
     file                 - name of the file to store the result to.
     """
-    print(f"{console_colors.HEADER}Attack-Simulation{console_colors.ENDC}")
+    print(f"{console_colors.HEADER}Attack simulations / Graph algorithms{console_colors.ENDC}")
    
     while True:
         print_options(attack_simulation_commands)
-        command = input("choose: ")
+        command = input("Choose: ")
         start_node = attacker_node_id 
         path = None
 
@@ -266,24 +268,24 @@ def attack_simulation(graph, attacker_node_id, index, file):
         if command == '5':
             break
         elif command == '1':
-            print("shortest path dijkstra")
-            target_node = input("enter target node id: ")
+            print("Shortest path Dijkstra")
+            target_node = input("Enter target node id: ")
             result = atksim.dijkstra(start_node, target_node, index)
             if result != None:
                 total_cost = result[0]
                 path = result[1]
                 nodes = result[2]
-                print("cost: ", total_cost)
+                print("Total cost: ", total_cost)
         elif command == '2':    #TODO add to the rest
-            print("shortest path AO star")
+            print("Shortest path AO*")
             '''
             target_node = input("enter target node id: ")
             path, cost = atksim.ao_star(atkgraph, target_node, index)
             '''
         elif command == '3':
-            print("random path")
-            target_node = input("enter target node id (press enter to run without target): ")
-            attack_budget = input("enter attack budget (press enter to run without target): ")
+            print("Random path")
+            target_node = input("Enter target node id (press enter to run without target): ")
+            attack_budget = input("Enter attack budget (press enter to run without target): ")
             if target_node == "":
                 target_node = None
             if attack_budget != "":
@@ -295,17 +297,17 @@ def attack_simulation(graph, attacker_node_id, index, file):
                 total_cost = result[0]
                 path = result[1]
                 nodes = result[2]
-                print("cost: ", total_cost)
+                print("Total cost: ", total_cost)
         elif command == '4':
-            print("attack range BFS")
-            max_distance = int(input("enter maximum distance (cost): "))
+            print("BFS with cost budget")
+            max_distance = int(input("Enter maximum allowed cost between the source and all nodes: "))
             path = atksim.bfs(start_node, index, max_distance)
             nodes = path.keys()
         if path != None:
             add_nodes_to_json_file(file, nodes, path)
             upload_json_to_neo4j_database(file, graph)
         else: 
-            print("no result")
+            print("No result")
 
 def index_nodes_by_id(atkgraph):
     """
@@ -347,10 +349,10 @@ def choose_atkgraph_file(path_to_directory):
     Return:
     The path to the file as a string.
     """
-    print("which attack graph file do you want to load?")
+    print("Which attack graph file do you want to load?")
     options = get_files_in_directory(path_to_directory)
     print_options(options)
-    command = input("choose: ")
+    command = input("Choose: ")
     file = options[int(command)]
     return os.path.join(path_to_directory, file)
 
@@ -380,11 +382,11 @@ def reachability_analysis(atkgraph_file, node_id):
     atkgraph_file               - the filename of the attack graph file.
     node id                     - the node ID to attatch the attacker to.
     """
-    print("reachability-analysis")
+    print("Reachability analysis")
     graph = mgg.atkgraph.load_atkgraph(atkgraph_file)
     # TODO fix so that it is possible to attatch multiple attackers
     node_ids = [node_id] 
-    corelang_filename ='assets/org.mal-lang.coreLang-0.3.0.mar'
+    corelang_filename ="assets/org.mal-lang.coreLang-0.3.0.mar"
     corelang_file = mgg.securicad.load_language_specification(corelang_filename)
     # compute reachability from the attacker node
     graph = apocriphy.attach_attacker_and_compute(corelang_file, graph, node_ids)
@@ -400,9 +402,9 @@ def reachability_analysis_with_pruning(atkgraph_file, file):
     atkgraph_file               - the filename of the attack graph file.
     file                        - the file to store the results to.
     """
-    print("reachability-analysis-with-pruning")
+    print("Reachability analysis with pruning of unreachable nodes")
     # TODO fix so that it is possible to attatch multiple attackers
-    id = input("attatch the attacker to node id (e.g. Network:8176711980537409:access): ")
+    id = input("Attatch the attacker to node id (e.g. Network:8176711980537409:access): ")
     graph = reachability_analysis(atkgraph_file, id)
     # modify the attacker node so that we can prune the untraversable nodes
     attacker = graph[-1]
@@ -413,7 +415,7 @@ def reachability_analysis_with_pruning(atkgraph_file, file):
     mgg.ingestor.neo4j.ingest(graph, delete=True)
     # save graph
     mgg.atkgraph.save_atkgraph(graph, file)
-    print("reachable graph is saved to ", file)
+    print("The reachable graph is saved to ", file)
 
 def main():
     print(f"{console_colors.HEADER}Attack Simulation Interface{console_colors.ENDC}")
@@ -446,7 +448,7 @@ def main():
 
         while True:
             print_options(start_commands)
-            command = input("choose: ")
+            command = input("Choose: ")
             if command == '1':
                 step_by_step_attack_simulation(graph, attacker_node_id, index, step_by_step_results_file)
             elif command == '2':
@@ -457,7 +459,7 @@ def main():
                 atkgraph = reachability_analysis(file, attacker_node_id)
                 # save graph
                 mgg.atkgraph.save_atkgraph(atkgraph, reachability_analysis_results_file)
-                print("reachable graph is saved to ", reachability_analysis_results_file)
+                print("The reachable graph is saved to ", reachability_analysis_results_file)
                 # upload graph to Neo4j
                 mgg.ingestor.neo4j.ingest(atkgraph, delete=True)
             elif command == '5':
