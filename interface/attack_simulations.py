@@ -4,59 +4,59 @@ import random
 import re
 
 
-def all_parents_visited(node_id, visited, index):
+def all_parents_visited(node_id, visited, node_dict):
     """
     Checks if the dependency steps for a node are completed.
     This includes also checking the reachability of the node.
 
     Arguments:
     node_id              - node ID.
-    index                - a dictionary representing the attack graph.
+    node_dict            - a dictionary representing the attack graph.
 
     Return:
     True if the node is an 'or' node.
     True if the node is an 'and' node which is reachable and all dependency steps has been visited.
     Otherwise False.
     """
-    if is_and_node(node_id, index):
+    if is_and_node(node_id, node_dict):
         # check reachability
-        if not is_reachable(node_id, index):
+        if not is_reachable(node_id, node_dict):
             return False
         # check if all dependency steps has been visited
-        for parents in index[node_id]["parent_list"]:
+        for parents in node_dict[node_id]["parent_list"]:
             if parents not in visited:
                 return False 
     return True
 
-def is_reachable(node_id, index):
+def is_reachable(node_id, node_dict):
     """
     Returns the nodes is_reachable value.
 
     Arguments:
     node_id              - node ID.
-    index                - a dictionary representing the attack graph.
+    node_dict            - a dictionary representing the attack graph.
 
     Return:
     True or False according to the is_reachable property.
     """
-    return index[node_id]["is_reachable"]
+    return node_dict[node_id]["is_reachable"]
 
-def is_and_node(node_id, index):
+def is_and_node(node_id, node_dict):
     """
     Checks if node is an 'and' node.
 
     Arguments:
     node_id              - node ID.
-    index                - a dictionary representing the attack graph.
+    node_dict            - a dictionary representing the attack graph.
 
     Return:
     True if the node is an 'and' node, otherwise False.
     """
-    if index[node_id]["type"] == "and":
+    if node_dict[node_id]["type"] == "and":
        return True
     return False
 
-def reconstruct_path(came_from, current, start_node, costs, index, visited=set()):
+def reconstruct_path(came_from, current, start_node, costs, node_dict, visited=set()):
     """
     Reconstructs the path found by the Dijksta algorithm and calculates the total cost for the path.
 
@@ -65,14 +65,14 @@ def reconstruct_path(came_from, current, start_node, costs, index, visited=set()
     current              - current node id for a node in the path. At the start this is the target node ID.
     start_node           - node ID for the start node
     costs                - a dictionary representing the costs for all nodes on the form {Node ID: cost, ...}.
-    index                - a dictionary representing the attack graph.
+    node_dict            - a dictionary representing the attack graph.
     visited              - set of visited nodes.
 
 
     Return:
-    A tuple on the form (cost, index, visited, _)
+    A tuple on the form (cost, node_dict, visited, _)
     cost                 - integer representing the total cost of the path-.
-    index                - a dictionary representing the attack graph. The "path_links" property contains the paths.
+    node_dict            - a dictionary representing the attack graph. The "path_links" property contains the paths.
     visited              - a set of nodes in the path.
     """
     cost = 0
@@ -80,24 +80,26 @@ def reconstruct_path(came_from, current, start_node, costs, index, visited=set()
         # reconstruct the path until the start node is reached
         while current in came_from.keys() and current != start_node:
             old_current = current
-            # link from current -> old_current
+            # all links from current -> old_current
             current = came_from[current]
             # condition for 'and' node       
             if len(current)>1:
                 for node in current:
-                    path_cost, _, _, _ = reconstruct_path(came_from, node, start_node, costs, index, visited)
+                    path_cost, _, _, _= reconstruct_path(came_from, node, start_node, costs, node_dict, visited)
                     cost += path_cost+costs[old_current]
-                    index[old_current]["path_links"].append(old_current)
+                    node_dict[node]["path_links"].append(old_current)
+                    visited.add(old_current)
                 break
+            # for 'or' nodes
             else:
                 current = current[0]
                 if old_current not in visited:
                     cost += costs[old_current]
                     visited.add(old_current)
-                if old_current not in index[current]["path_links"]:
-                    index[current]["path_links"].append(old_current) 
+                if old_current not in node_dict[current]["path_links"]:
+                    node_dict[current]["path_links"].append(old_current) 
         visited.add(start_node)
-    return cost, index, visited, old_current
+    return cost, node_dict, visited, old_current
     
 def fill_dictionary_with_empty_list(dict):
     """
@@ -113,32 +115,32 @@ def fill_dictionary_with_empty_list(dict):
         dict[key] = list()
     return dict
 
-def get_costs(index):
+def get_costs(node_dict):
     """
     Gets the cost for all nodes in the graph.
 
     Arguments:
-    index           - dictionary representing the attack graph.
+    node_dict       - dictionary representing the attack graph.
 
     Return:
     A dictionary containing all node IDs as keys, and the costs as values.
     """
     dict = {}
-    for key in index.keys():
-        node = index[key]
+    for key in node_dict.keys():
+        node = node_dict[key]
         if not node['ttc'] == None: # for the attacker node, the ttc is None
             dict[key]=node['ttc']['cost'][0]
     return dict
 
 
-def bfs(source, index, max_distance):
+def bfs(source, node_dict, max_distance):
     """
     Breadth First Search with changed stop condition.
     Gets a subgraph with nodes which is at a lower or equal distance/cost than a max distance value.
 
     Arguments:
     source               - node ID.
-    index                - a dictionary representing the attack graph.
+    node_dict            - a dictionary representing the attack graph.
     max_distance         - integer representing the max distance/cost
 
     Return:
@@ -151,33 +153,33 @@ def bfs(source, index, max_distance):
     while queue:
         node, distance = queue.popleft()
         # reset the "path_links" attribute
-        index[node]["path_links"] = index[node]["links"]
+        node_dict[node]["path_links"] = node_dict[node]["links"]
         # Assign the distance from the source for each node
-        nodes[node] = index[node]  
+        nodes[node] = node_dict[node]  
         # Explore the neighbors of the current node
-        for link in index[node]["links"]:
-            distance = distance + index[link]['ttc']['cost'][0]
+        for link in node_dict[node]["links"]:
+            distance = distance + node_dict[link]['ttc']['cost'][0]
             if link not in visited and distance <= max_distance :
                 visited.add(link)
                 queue.append((link, distance))
     return nodes
 
-def dijkstra(start_node, target_node, index):
+def dijkstra(start_node, target_node, node_dict):
     """
     Finds the shortest path between two nodes with Dijkstra's algorithm, with added conditions for processing the 'and' nodes.
 
     Arguments:
     start_node           - Node ID of the start node (this is often the attacker node id).
     target_node          - Node ID of the target node.
-    index                - a dictionary on the form {node ID: node as dictionary, ...}, representing the attack graph.
+    node_dict            - a dictionary on the form {node ID: node as dictionary, ...}, representing the attack graph.
 
     Return:
-    A tuple on the form (cost, index, visited, _)
+    A tuple on the form (cost, node_dict, visited, _)
     cost                 - integer representing the total cost of the path-.
-    index                - a dictionary representing the attack graph. The "path_links" property contains the paths.
+    node_dict            - a dictionary representing the attack graph. The "path_links" property contains the paths.
     visited              - a set of nodes in the path.
     """
-    node_ids = list(index.keys())
+    node_ids = list(node_dict.keys())
 
     open_set = []
     heapq.heappush(open_set, (0, start_node))
@@ -200,7 +202,7 @@ def dijkstra(start_node, target_node, index):
     f_score = dict.fromkeys(node_ids, 0)
     f_score[start_node] = h_score[start_node] # TODO calculate the h_score for all nodes
     
-    costs = get_costs(index)
+    costs = get_costs(node_dict)
     costs_copy = costs.copy()
 
     current_node = start_node
@@ -210,9 +212,9 @@ def dijkstra(start_node, target_node, index):
         visited.add(current_node)
 
         if current_node == target_node:
-            return reconstruct_path(came_from, current_node, start_node, costs_copy, index, set())
+            return reconstruct_path(came_from, current_node, start_node, costs_copy, node_dict, set())
 
-        current_neighbors = index[current_node]["links"]
+        current_neighbors = node_dict[current_node]["links"]
        
         for neighbor in current_neighbors:  
             tentative_g_score = g_score[current_node]+costs[neighbor]
@@ -220,36 +222,36 @@ def dijkstra(start_node, target_node, index):
             if tentative_g_score < g_score[neighbor]:
                 # if it is an 'or' node or if the and all parents to the 'and' node has been visited,
                 # continue to try this path
-                if all_parents_visited(neighbor, visited, index):
+                if all_parents_visited(neighbor, visited, node_dict):
                     came_from[neighbor].append(current_node)
                     g_score[neighbor] = tentative_g_score
                     f_score[neighbor] = tentative_g_score + h_score[neighbor] # TODO calculate the h_score for all nodes
                     if neighbor not in open_set:
                         heapq.heappush(open_set, (f_score[neighbor], neighbor))
                 # if the node is an 'and' node, still update the node cost and keep track of the path
-                elif is_and_node(neighbor, index):
-                    costs[neighbor]=tentative_g_score
+                elif is_and_node(neighbor, node_dict):
+                    costs[neighbor] = tentative_g_score
                     came_from[neighbor].append(current_node)
     return 
 
-def random_path(start_node, index, target_node=None, cost_budget=None):
+def random_path(start_node, node_dict, target_node=None, cost_budget=None):
     """
     Get a random path in the attack graph. 
     It is possible to search for a target_node and/or use a cost_budget.
 
     Arguments:
     start_node           - Node ID of the start node (this is often the attacker node id).
-    index                - a dictionary on the form {node ID: node as dictionary, ...}, representing the attack graph.
+    node_dict            - a dictionary on the form {node ID: node as dictionary, ...}, representing the attack graph.
     target_node          - Node ID of the target node.
     cost_budget          - integer representing the attacker cost budget.
 
     Return:
-    A tuple on the form (cost, index, visited).
+    A tuple on the form (cost, node_dict, visited).
     cost                 - integer representing the total cost of the path.
-    index                - a dictionary representing the attack graph. The "path_links" property contains the paths.
+    node_dic             - a dictionary representing the attack graph. The "path_links" property contains the paths.
     visited              - a set of nodes in the path.
     """
-    node_ids = list(index.keys())
+    node_ids = list(node_dict.keys())
     visited = set()  
     visited.add(start_node)
     came_from = dict.fromkeys(node_ids, '')
@@ -257,27 +259,27 @@ def random_path(start_node, index, target_node=None, cost_budget=None):
     target_found = False
     unreachable_horizon_nodes = set()
     # initialize the attack horizon
-    for node_id in index[start_node]["links"]:
+    for node_id in node_dict[start_node]["links"]:
         horizon.add(node_id)
         came_from[node_id] = start_node
-    costs = get_costs(index)
+    costs = get_costs(node_dict)
     cost = 0
     if target_node == None and cost_budget == None:
-        return cost, index, visited
+        return cost, node_dict, visited
     while len(horizon) > 0 and unreachable_horizon_nodes != horizon:
         node = random.choice(list(horizon))
         # attack unvisited node
-        if all_parents_visited(node, visited, index):
+        if all_parents_visited(node, visited, node_dict):
             if cost_budget != None and cost+costs[node] > cost_budget:
                 break
             visited.add(node)
-            index[came_from[node]]["path_links"].append(node) 
+            node_dict[came_from[node]]["path_links"].append(node) 
             cost += costs[node]
             if node in unreachable_horizon_nodes:
                 unreachable_horizon_nodes.remove(node)
             # update the horizon
             horizon.remove(node)
-            for node_id in index[node]['links']:
+            for node_id in node_dict[node]['links']:
                 horizon.add(node_id)
                 came_from[node_id] = node
             # check if the target was selected
@@ -290,16 +292,16 @@ def random_path(start_node, index, target_node=None, cost_budget=None):
     # check if the target never was selected in the path
     if target_node != None and target_found == False:
         print("The target,", target_node, "was not found!")
-    return cost, index, visited
+    return cost, node_dict, visited
 
 # all AO* functions are below here:
 
-def ao_star(atkgraph, start_node, index):
+def ao_star(atkgraph, start_node, node_dict):
     """
     AO* main function.
     """
-    H = get_heuristics_for_nodes(index, start_node)
-    weight = get_costs(index)
+    H = get_heuristics_for_nodes(node_dict, start_node)
+    weight = get_costs(node_dict)
     and_nodes = get_and_nodes(atkgraph)
     adjacency_list = get_adjacency_list(atkgraph, and_nodes)
     print(adjacency_list)
@@ -427,7 +429,7 @@ def Cost(H, condition, weight):
             cost[Path_B] = PathB
     return cost
 
-def get_heuristics_for_nodes(index, target_node):
+def get_heuristics_for_nodes(node_dict, target_node):
     """
     AO* function.
     Breadth-First Search (BFS), starting from the target node.
@@ -442,7 +444,7 @@ def get_heuristics_for_nodes(index, target_node):
         node, distance = queue.popleft()
         heuristics[node] = distance  # Assign the distance as the heuristic value
         # Explore the neighbors of the current node
-        parent_list = index[node]["parent_list"]
+        parent_list = node_dict[node]["parent_list"]
         for parent in parent_list:
             if parent not in visited:
                 visited.add(parent)
