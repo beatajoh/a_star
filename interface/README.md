@@ -87,3 +87,6 @@ The results from the attack simulations are always stored in the same json files
 * The object class (objclass) of attack steps is not checked by the graph algorithms and step-by step attack simulation. This means that e.g. UnknownSoftwareVulnerability attack steps are included in the resulting paths.
 * If a simulation is not successful, maybe if a target attack step is not reached, do not upload to Neo4j.
 * Make it possible to add multiple attackers/change the point of access for the attacker. Currently we assume that the attacker node is added to the end of the attack graph file.
+
+## FINAL NOTE ON BUGS
+The last bug fix was in the reconstruct_path function. If the Dijksta algorithm yields the wrong result, e.g. not displaying the sub-paths leading up to 'and' nodes it is possible that the fault is in the reconstruct_path function.
