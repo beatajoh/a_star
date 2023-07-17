@@ -12,7 +12,7 @@ Clone the repositories by doing:
 git clone https://github.com/gnebbia/mgg
 git clone https://github.com/beatajoh/a_star
 ```
-### virtual environment
+### Virtual environment
 Set up a virtual environment by doing:
 ```sh
 python -m venv env
@@ -63,3 +63,4 @@ The results from the attack simulations are always stored in the same json files
 * If we don't want to have to do reachability analysis manually for Dijkstra, Random path, Step-by-step algorithms:
     * add reachability analysis as an automatic step before some of the attack simulations.
     * or change all_parents_visited (in attack_simulations.py) function to check reachability.
+* The object class (objclass) of attack steps is not checked by the graph algorithms and step-by step attack simulation. This means that e.g. UnknownSoftwareVulnerability attack steps are included in the resulting paths.

@@ -91,7 +91,7 @@ def step_by_step_attack_simulation(graph, attacker_node_id, index, file):
     index                - a dictionary on the form {node ID: node as dictionary, ...}.
     file                 - name of the file to store the result to.
     """
-    print(f"{console_colors.HEADER}step-by-step-attack{console_colors.ENDC}")
+    print(f"{console_colors.HEADER}Step by step attack{console_colors.ENDC}")
 
     # add all links to the path_links attribute
     for key in index.keys():
@@ -106,14 +106,14 @@ def step_by_step_attack_simulation(graph, attacker_node_id, index, file):
         horizon = update_horizon(node, horizon, index)
     while True:
         print_options(step_by_step_attack_commands)
-        command = input("choose: ")
+        command = input("Choose: ")
         if command == '1':
             print_horizon(horizon, index)
         elif command == '2':
             # choose next node name to visit       
             node_options = get_horizon_w_commands(horizon)  # TODO print the node type
             print_horizon(horizon, index)
-            option = input("choose node to attack: ")
+            option = input("Choose a node (id) to attack: ")
             attack_node = node_options[int(option)]
             # update horizon
             if attack_node in horizon and atksim.all_parents_visited(attack_node, visited, index):
@@ -211,7 +211,8 @@ def print_horizon(horizon, index):
     """
     print(f"{console_colors.FAIL}Attacker Horizon{console_colors.ENDC}")
     for i, node in enumerate(horizon):
-        print(f"{console_colors.BOLD}", "(", i+1, ")", node, index[node]["type"])
+        #print(f"{console_colors.BOLD}", "(", i+1, ")", node, index[node]["type"])
+        print("(", i+1, ")", node, index[node]["type"])
     print(f"{console_colors.ENDC}")
 
 
@@ -252,11 +253,11 @@ def attack_simulation(graph, attacker_node_id, index, file):
     index                - a dictionary on the form {node ID: node as dictionary, ...}.
     file                 - name of the file to store the result to.
     """
-    print(f"{console_colors.HEADER}Attack-Simulation{console_colors.ENDC}")
+    print(f"{console_colors.HEADER}Attack simulations / Graph algorithms{console_colors.ENDC}")
    
     while True:
         print_options(attack_simulation_commands)
-        command = input("choose: ")
+        command = input("Choose: ")
         start_node = attacker_node_id 
         path = None
 
@@ -268,7 +269,7 @@ def attack_simulation(graph, attacker_node_id, index, file):
             break
         elif command == '1':
             print("Shortest path Dijkstra")
-            target_node = input("enter target node id: ")
+            target_node = input("Enter target node id: ")
             result = atksim.dijkstra(start_node, target_node, index)
             if result != None:
                 total_cost = result[0]
@@ -283,8 +284,8 @@ def attack_simulation(graph, attacker_node_id, index, file):
             '''
         elif command == '3':
             print("Random path")
-            target_node = input("enter target node id (press enter to run without target): ")
-            attack_budget = input("enter attack budget (press enter to run without target): ")
+            target_node = input("Enter target node id (press enter to run without target): ")
+            attack_budget = input("Enter attack budget (press enter to run without target): ")
             if target_node == "":
                 target_node = None
             if attack_budget != "":
@@ -351,7 +352,7 @@ def choose_atkgraph_file(path_to_directory):
     print("Which attack graph file do you want to load?")
     options = get_files_in_directory(path_to_directory)
     print_options(options)
-    command = input("choose: ")
+    command = input("Choose: ")
     file = options[int(command)]
     return os.path.join(path_to_directory, file)
 
@@ -447,7 +448,7 @@ def main():
 
         while True:
             print_options(start_commands)
-            command = input("choose: ")
+            command = input("Choose: ")
             if command == '1':
                 step_by_step_attack_simulation(graph, attacker_node_id, index, step_by_step_results_file)
             elif command == '2':
