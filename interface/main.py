@@ -437,7 +437,7 @@ def main():
         atkgraph = get_parents_for_and_nodes(atkgraph)
         
         # build a dictionary with node id as keys and the entire json node element as the values
-        # we add an attribute called "path_links" which can be updated to store the results for the paths from the attack simulations
+        # we add an attribute called "path_links" to the nodes which can be updated to store the results for the paths from the attack simulations
         node_dict = build_node_dict(atkgraph)
         
         # connect to Neo4j graph database

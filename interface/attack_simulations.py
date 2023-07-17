@@ -80,15 +80,17 @@ def reconstruct_path(came_from, current, start_node, costs, node_dict, visited=s
         # reconstruct the path until the start node is reached
         while current in came_from.keys() and current != start_node:
             old_current = current
-            # link from current -> old_current
+            # all links from current -> old_current
             current = came_from[current]
             # condition for 'and' node       
             if len(current)>1:
                 for node in current:
-                    path_cost, _, _, _ = reconstruct_path(came_from, node, start_node, costs, node_dict, visited)
+                    path_cost, _, _, _= reconstruct_path(came_from, node, start_node, costs, node_dict, visited)
                     cost += path_cost+costs[old_current]
-                    node_dict[old_current]["path_links"].append(old_current)
+                    node_dict[node]["path_links"].append(old_current)
+                    visited.add(old_current)
                 break
+            # for 'or' nodes
             else:
                 current = current[0]
                 if old_current not in visited:
@@ -228,7 +230,7 @@ def dijkstra(start_node, target_node, node_dict):
                         heapq.heappush(open_set, (f_score[neighbor], neighbor))
                 # if the node is an 'and' node, still update the node cost and keep track of the path
                 elif is_and_node(neighbor, node_dict):
-                    costs[neighbor]=tentative_g_score
+                    costs[neighbor] = tentative_g_score
                     came_from[neighbor].append(current_node)
     return 
 
