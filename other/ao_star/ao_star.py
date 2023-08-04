@@ -1,49 +1,42 @@
-import json
 from collections import deque
-import re
+import json
 
-# Cost to find the AND and OR path
-def Cost(H, condition, weight):
-    cost = {}
-    if 'AND' in condition:
-        AND_nodes = condition['AND']
-        Path_A = ' AND '.join(AND_nodes)
-        PathA = sum(H[node]+weight[node] for node in AND_nodes)
-        cost[Path_A] = PathA
+class Node:
+    def __str__(self):
+        return f"Node: {self.node_id}, g_cost = {self.g_cost}, h_cost = {self.h_cost}, f_cost = {self.f_cost}, type = {self.type}, parents = {[node.node_id for node in self.parents]}, links = {self.links}, parent_list = {self.parent_list}, actual_cost = {self.actual_cost}"
 
-    if 'OR' in condition:
-        OR_nodes = condition['OR']
-        if OR_nodes:
-            Path_B =' OR '.join(OR_nodes)
-            PathB = min(H[node]+weight[node] for node in OR_nodes)
-            cost[Path_B] = PathB
+    def __init__(self, node_id, parent=None):
+        self.node_id = node_id
+        self.g_cost = float('inf')  # Cost from the start node to this node
+        self.h_cost = float('inf')  # Heuristic cost (estimated cost) from this node to the goal
+        self.f_cost = float('inf')  # Total cost: f_cost = g_cost + h_cost
+        self.type = None
+        self.parents = [parent] if parent else []
+        self.links = []
+        self.parent_list = []
+        self.actual_cost = float('inf')
 
-    return cost
+def create_node_dict(atkgraph, heuristics):
+    node_dict = {}
+    for node_data in atkgraph:
+        node_id = node_data["id"]
+        node = Node(node_id)
+        node.h_cost = heuristics.get(node_id, float('inf'))
+        node.links = node_data.get("links", [])
+        node.type = node_data.get("type", None)
+        node.parent_list = node_data.get("parent_list", [])
+        ttc_data = node_data.get("ttc", {})
+        node.actual_cost = ttc_data.get("cost", [])[0]
+        if node.type == "defense":
+            if node_data["defense_status"] and "value" in node_data["defense_status"] and node_data["defense_status"]["value"] == "1.0":
+                node.g_cost = float('inf')
+            else:
+                node.g_cost = float(0)
+        if node.type == "exists" or node.type == "notExists":
+            node.g_cost = float(0)
+        node_dict[node_id] = node
 
-
-# Update the cost
-def update_cost(H, Conditions, weight):
-    Main_nodes = list(Conditions.keys())
-    Main_nodes.reverse()
-    least_cost= {}
-    for key in Main_nodes:
-        condition = Conditions[key]
-        print(key,':', Conditions[key],'>>>', Cost(H, condition, weight))
-        least_cost[key] = Cost(H, condition, weight)
-    return least_cost
-
-'''
-Gets the cost for all attack steps in the graph.
-Returns a dictionary with node ids as keys, and the parent_list as values.
-'''
-
-def get_costs_for_nodes(atkgraph):
-    dict = {}
-    for node in atkgraph:
-        if not node['ttc'] == None: # for the attacker node, the ttc is None
-            dict[node['id']]=node['ttc']['cost'][0]
-    return dict
-
+    return node_dict
 
 '''
 Traverse the attack graph .json file and get all parents to 'and' nodes and add new 'parent_list' attribute to the file.
@@ -74,44 +67,26 @@ def get_parents_for_and_nodes(atkgraph):
             atkgraph[i]["parent_list"]=parent_list
     return atkgraph
 
-def get_and_nodes(atkgraph):
-    list = set()
+def get_node_by_id(node_id, atkgraph):
     for node in atkgraph:
-        if node['type'] == 'and':
-            list.add(node['id'])
-    return list    
+        if node["id"] == node_id:
+            return node
+    return None
 
-def get_adjacency_list(atkgraph, and_nodes):
-    dict = {}
-    or_and = ''
-    for node in atkgraph:
-        adjacent = {}
-        if node['id'] in and_nodes:
-            or_and = 'AND'
-        else: 
-            or_and = 'OR'
-        adjacent[or_and] = []
-        for parent in node['parent_list']:
-            adjacent[or_and].append(parent)
-        dict[node['id']] = adjacent
-    # print("the result", dict)
-    return dict 
+def get_list_node_by_id(node_id, node_list):
+    for node in node_list:
+        if node.node_id == node_id:
+            return node
+    return None
 
-'''
-Performing a graph traversal algorithm, 
-breadth-first search (BFS), starting from the target node.
-'''
 def get_heuristics_for_nodes(atkgraph, target_node):
     heuristics = {}
-    
-    # Perform Breadth-First Search (BFS) from the target node
     queue = deque([(target_node, 0)])  # Start BFS from the target node with distance 0
     visited = set([target_node])  # Keep track of visited nodes
 
     while queue:
         node, distance = queue.popleft()
         heuristics[node] = distance  # Assign the distance as the heuristic value
-        # Explore the neighbors of the current node
         for other_node in atkgraph:
             if other_node['id'] == node:
                 parent_list = other_node['parent_list']
@@ -123,99 +98,113 @@ def get_heuristics_for_nodes(atkgraph, target_node):
     
     return heuristics
 
+def calculate_and_cost(current_node, neighbor_node, node_dict):
+    # Calculate the cost of an AND node by considering the maximum g_cost of its child nodes
+    cost = neighbor_node.actual_cost
+    # print("************AND_NODE***********")
+    for parent_node_id in neighbor_node.parent_list:
+        # print(f'For AND node {neighbor_node.node_id} check parent node id {parent_node_id}')
+        cost += node_dict[parent_node_id].g_cost
+        
+    return cost
 
-def shortest_path_ao_star(Start, Updated_cost, H):
-    Path = Start
-    if Start in Updated_cost.keys():
-        values = Updated_cost[Start].values()
-        if values:
-            Min_cost = min(values)
-            key = list(Updated_cost[Start].keys())
-            Index = list(Updated_cost[Start].values()).index(Min_cost)
-            Next = key[Index].split()
-            if len(Next) == 1:
-                Start = Next[0]
-                path = shortest_path_ao_star(Start, Updated_cost, H)
-                Path += '<--' + path
+def calculate_or_cost(current_node, neighbor_node, node_dict):
+    # Calculate the cost of an OR node by considering the minimum g_cost of its child nodes
+    return current_node.g_cost + neighbor_node.actual_cost
+
+
+def a_star_search(start_node_id, goal_node_id, atkgraph):
+    heuristics = get_heuristics_for_nodes(atkgraph, goal_node_id)
+    node_dict = create_node_dict(atkgraph, heuristics)
+    start_node = node_dict[start_node_id]
+    start_node.g_cost = 0
+    goal_node = node_dict[goal_node_id]
+    # print(f'start_node: {start_node}')
+    # print(f'goal_node: {goal_node}')
+    open_list = [start_node]
+    closed_list = []
+
+    while open_list:
+        open_list.sort(key=lambda node: (node.f_cost))  # Sort open_list by heuristic value and g Cost
+        current_node = open_list.pop(0)  # Select the node with the lowest heuristic
+
+        closed_list.append(current_node)
+        # print("-"*100)
+        # print(f'current_node.node_id : {current_node.node_id}')
+        # print(f'goal_node.node_id: {goal_node.node_id}')
+
+        if current_node.node_id == goal_node.node_id:
+            path = []
+            current_nodes = [current_node]
+            total_cost = current_node.f_cost
+            while current_nodes:
+                node = current_nodes.pop()
+                if node in path:
+                    continue
+                path.append(node)
+                for parent_node in node.parents:
+                    current_nodes.append(parent_node)
+                # print(f'CURRENT PATH {[node.node_id for node in path]}')
+
+            # Print the costs of every node on the path
+            # print("Heuristics of nodes on the path:")
+            for node_id in path:
+                node_cost = heuristics[node_id] if node_id in heuristics else -1
+                # print(f"{node_id}, cost = {node_cost}")
+
+            return path, total_cost
+
+        for neighbor_node_id in current_node.links:
+            # print(f'neighbor_node_id: {neighbor_node_id}')
+            neighbor_node = node_dict[neighbor_node_id]
+            node_type = neighbor_node.type
+
+            # Calculate the new tentative g_cost for this neighbor
+            if node_type == "and":
+                tentative_g_cost = calculate_and_cost(current_node, neighbor_node, node_dict)
             else:
-                if "AND" in Next:
-                    Path += '<--(' + key[Index] + ') ['
-                    for i in range(len(Next)):
-                        if Next[i] == "AND":
-                            continue
-                        Start = Next[i]
-                        path = shortest_path_ao_star(Start, Updated_cost, H)
-                        Path += path
-                        if i < len(Next) - 1:
-                            Path += ' + '
-                    Path += ']'
+                tentative_g_cost = calculate_or_cost(current_node, neighbor_node, node_dict)
+
+            # Check if the neighbor node is already in the open list
+            in_open_list = False
+            for node in open_list:
+                if node.node_id == neighbor_node.node_id:
+                    in_open_list = True
+                    break
+
+            # print(f'Comparing new tenatitve G cost {tentative_g_cost} to old cost of {neighbor_node.g_cost}')
+            if tentative_g_cost < neighbor_node.g_cost:
+                neighbor_node.g_cost = tentative_g_cost
+                neighbor_node.f_cost = neighbor_node.g_cost + neighbor_node.h_cost
+                if neighbor_node.type == "and":
+                    for parent_node_id in neighbor_node.parent_list:
+                        neighbor_node.parents.append(node_dict[parent_node_id])
                 else:
-                    Path += '<--(' + key[Index] + ') '
-                    Start = Next[0]
-                    path = shortest_path_ao_star(Start, Updated_cost, H)
-                    Path += path
+                    neighbor_node.parents = [current_node]
+                if not in_open_list:
+                    # Add the neighbor to the open list
+                    open_list.append(neighbor_node)
+        # print("-"*100)
+        # for node in open_list:
+            # print(f'{node.node_id}: G:{node.g_cost} H:{node.h_cost} F:{node.f_cost} A:{node.actual_cost}')
+    
+    return None, None
 
-    return Path
-
-def calculate_shortest_path_cost(shortest_path_str, cost, heuristics):
-    nodes = re.findall(r'\b\w+\b', shortest_path_str)
-    total_cost = 0
-    visited = set()
-
-    for i, node in enumerate(nodes):
-        if node == 'OR':
-            if nodes.count(nodes[i-1]) > 1:
-                visited.add(nodes[i-1])
-                del nodes[i+1]
-            elif nodes.count(nodes[i+1]) > 1:
-                visited.add(nodes[i+1])
-                del nodes[i-1]
-            continue
-        if node not in ['AND', 'OR'] and node not in visited:
-            visited.add(node)
-    # Calculate the total cost for visited nodes
-    for node in visited:
-        total_cost += cost[node] + heuristics[node]
-
-    return total_cost
-
-
-
-# H = {'H': 0, 'E': 1, 'C': 2, 'F': 2, 'B': 3, 'D': 3, 'A': 4, 'G': 4}
-
-
-# with open("atkgraph.json", 'r') as readfile:
-#     atkgraph=json.load(readfile)
-with open("../test_graphs/small_graph_2.json", 'r') as readfile:
+with open("/home/kali/Documents/tyr_mal_infrastructure/mgg-project/interface/test_graphs/MODIFIED_network_connect_authenticate_attack_graph.json", 'r') as readfile:
     atkgraph=json.load(readfile)
 
 atkgraph = get_parents_for_and_nodes(atkgraph)
 
-
-# with open("atkgraph.json", 'w', encoding='utf-8') as writefile:
-#     json.dump(atkgraph, writefile, indent=4)
-with open("../test_graphs/small_graph_2.json", 'w', encoding='utf-8') as writefile:
+with open("/home/kali/Documents/tyr_mal_infrastructure/mgg-project/interface/test_graphs/MODIFIED_network_connect_authenticate_attack_graph.json", 'w', encoding='utf-8') as writefile:
     json.dump(atkgraph, writefile, indent=4)
 
-target_node = 'H'  
-H = get_heuristics_for_nodes(atkgraph, target_node)
-print('Heuristics: ',H)
-weight = get_costs_for_nodes(atkgraph)
-print("="*150)
-print('Cost: ', weight)
-and_nodes = get_and_nodes(atkgraph)
+start_node_id = "Attacker:-8931970777742292796:firstSteps"
+goal_node_id = "Application:8326449865063550222:fullAccess"
+shortest_path, total_cost = a_star_search(start_node_id, goal_node_id, atkgraph)
 
-adjacency_list = get_adjacency_list(atkgraph, and_nodes)
-print("-"*150)
-print('Adjacency list: ', adjacency_list)
-print("="*150)
-Updated_cost = update_cost(H, adjacency_list, weight)
-print("-"*150)
-print('Updated costs: ', Updated_cost)
-print("*"*150)
-shortest_path_str = shortest_path_ao_star(target_node, Updated_cost, H)
-print('Shortest Path:\n', shortest_path_str)
-
-total_cost = calculate_shortest_path_cost(shortest_path_str, weight, H)
-print('Total Cost:', total_cost)
-
+# print("-"*100)
+if shortest_path:
+    print(f"Shortest path: {[node.node_id for node in shortest_path]}")
+    print("Total cost to end node:", total_cost)
+else:
+    print("No path found.")
