@@ -13,7 +13,7 @@ git clone https://github.com/gnebbia/mgg
 git clone https://github.com/beatajoh/a_star
 ```
 ### Virtual environment
-Set up a virtual environment by doing:
+Set up a virtual environment. Navigate to the mgg repository and run:
 ```sh
 python -m venv env
 source env/bin/activate
@@ -23,28 +23,28 @@ pip install -r requirements.txt
 **NOTE:** You need a python version >= 3.9, the latest the better.
 
 ### Set up the Neo4j database
-we need an open Neo4j instance running with a database
+We need an open Neo4j instance running with a database
 with the following credentials:
 
 - username: neo4j
 - password: mgg12345!
 - dbname:   neo4j
 
-Note that the Neo4J project name and the DBMS name used within
+Note that the Neo4j project name and the DBMS name used within
 the project are irrelevant, the most important thing is that
 the password matches as the username and specific database
 name are set to default values.
 
 ## USAGE
-open the terminal, navigate to the interface directory, and run:
+Open the terminal, navigate to the mgg-poject interface directory, and run:
 ````
 python main.py
 ````
-this flowchart shows the workflow of the interface:
+This flowchart shows the workflow of the interface:
 ![interface flowchart](assets/interface_flowchart.png)
 
 ### What does the attack simulations do?
-* **Step by step attack** - Choose a attack path from the attacker node by manually choosing which nodes to move forward to.
+* **Step by step attack** - Simulate the attack path from the attacker node by manually choosing which nodes to move forward to.
 * **Shortest path Dijkstra** - Get the shortest path from the attacker node to a target attack step.
 * **Random path** - Get a random path of attack steps. It is possible to search for a target attack step and adding a cost budget for the attacker.
 * **BFS** - Get a subgraph where all nodes are within a specific distance from the attacker node.
