@@ -6,11 +6,11 @@ This is an interactive interface for running attack simulations on the mgg-gener
 
 ## INSTALLATION
 
-### Clone the a_star and mgg repository
+### Clone this repository and the mgg repository
 Clone the repositories by doing:
 ```sh
 git clone https://github.com/gnebbia/mgg
-git clone https://github.com/beatajoh/a_star
+git clone https://github.com/beatajoh/mgg-project
 ```
 ### Virtual environment
 Set up a virtual environment. Navigate to the mgg repository and run:
