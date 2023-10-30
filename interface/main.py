@@ -1,13 +1,12 @@
 import os
 import json
+from typing import List
 import attack_simulations
 from py2neo import Graph, Node, Relationship
-
 import maltoolbox
-
-import sys
-sys.path.insert(1, '../../mgg')
-import tmp.apocriphy as apocriphy
+import reachability
+import maltoolbox.attackgraph.attackgraph
+import maltoolbox.ingestors.neo4j
 
 class Console_colors:
     """
@@ -42,109 +41,154 @@ ATTACK_SIMULATION_COMMANDS = {
 
 MAR_ARCHIVE = "assets/org.mal-lang.coreLang-0.3.0.mar"
 
-def upload_json_to_neo4j_database(file, graph):
+def upload_graph_to_neo4j_database(neo4j_graph, path_nodes, attackgraph_dict, horizon_nodes=None):
     """
-    Uploads the json file to Neo4j.
-    # TODO change this function!
+    Uploads the traversed path and attacker horizon (optional) by the attacker to Neo4j.
 
     Arguments:
-    file            - json file with the attack graph.
-    graph           - connection to the graph database in Neo4j.
+    neo4j_graph           - connection to the graph database in Neo4j.
+    path_nodes            - a set of attack steps in the path.
+    attackgraph_dict      - a dictionary containing the node id:s as keys and corresponding AttackGraphNode as values.
+    horizon_nodes         - a set of horizon attack steps.
     """
     nodes = {}
-    graph.delete_all()
-    with open(file, 'r') as file:
-        data = json.load(file)
-    for node in data:
-        cost_value = 0
-        if node["ttc"] != None:
-            cost_value = node["ttc"]["cost"][0]
-        # build Node object
-        node_obj = Node(
-            str(node["horizon"]),
-            name = node["id"],
-            type = node["type"],
-            objclass = node["objclass"],
-            objid = node["objid"],
-            atkname = node["atkname"],
-            is_traversable=node["is_traversable"],
-            is_reachable=node["is_reachable"],
-            graph_type = "attackgraph",
-            cost = cost_value
-        )
-        graph.create(node_obj)
-        nodes[node["id"]] = node_obj
-    for node in data:
-        links = node["path_links"]
-        for link in links:
-            if link in nodes.keys():
-                from_node = nodes[node["id"]]
-                to_node = nodes[link]
-                relationship = Relationship(from_node, "Relationship", to_node)
-                graph.create(relationship)
+    neo4j_graph.delete_all()
 
-def step_by_step_attack_simulation(graph, attacker_node_id, node_dict, file):
+    for node_id in path_nodes:
+        node = attackgraph_dict[node_id]
+
+        if node["ttc"] != None:
+            ttc_type = node.ttc["type"]
+            ttc_name = node.ttc["name"]
+            ttc_arguments = node.ttc["arguments"]
+            # TODO calculate the ttc cost.
+            ttc_cost = 1
+        elif node["ttc"] == None:
+            ttc_cost = 1
+
+        # Build attacker in Neo4j
+        if node.name == "firstSteps":
+            node_obj = Node(
+                id = node.id,
+                type = node.type,
+                name = node.name,
+                horizon = False
+            )
+
+        # Build attack steps for Neo4j
+        else: 
+            node_obj = Node(
+                id = node.id,
+                type = node.type,
+                asset = node.asset,
+                name = node.name,
+                horizon = False,
+                ttc_cost = ttc_cost
+                #ttc = node.ttc,
+                #children = node.children,
+                #parents = node.parents,
+                #compromised_by = node.compromised_by
+            )
+        neo4j_graph.create(node_obj)
+        nodes[node.id] = node_obj
+    
+    # Build horizon attack steps for Neo4j
+    if horizon_nodes != None:
+        for node_id in horizon_nodes:
+            node = attackgraph_dict[node_id]
+            node_obj = Node(
+                    id = node.id,
+                    type = node.type,
+                    asset = node.asset,
+                    name = node.name,
+                    horizon = True,
+                    ttc_cost = ttc_cost
+                    #ttc = node.ttc,
+                    #children = node.children,
+                    #parents = node.parents,
+                    #compromised_by = node.compromised_by
+                )
+            neo4j_graph.create(node_obj)
+            nodes[node.id] = node_obj
+
+    # Add edges to the attack graph in Neo4j.
+    for id in attackgraph_dict.keys():
+        if id in nodes.keys():
+            node = attackgraph_dict[id]
+            for child in node.extra:
+                if child.id in nodes.keys():
+                    from_node = nodes[id]
+                    to_node = nodes[child.id]
+                    if (from_node['horizon'] == False and to_node['horizon'] == False) or \
+                       (from_node['horizon'] == False and to_node['horizon'] == True):
+                        relationship = Relationship(from_node, "Relationship", to_node)
+                        neo4j_graph.create(relationship)
+
+def step_by_step_attack_simulation(graph, attacker, attackgraph_dict, file):
     """
     Main function for the step by step attack simulation. 
 
     Arguments:
     graph                - connection to the graph database in Neo4j.
-    attacker_node_id     - the ID of the attacker node.
-    node_dic             - a dictionary on the form {node ID: node as dictionary, ...}.
+    attacker             - the Attacker instance.
+    attackgraph_dict     - the attackgraph as a dictionary with a string node id as key 
+                           and AttackGraphNode as value.
     file                 - name of the file to store the result to.
     """
     print(f"{Console_colors.HEADER}Step by step attack{Console_colors.ENDC}")
 
-    # Add all links to the path_links attribute.
-    for key in node_dict.keys():
-        node_dict[key]["path_links"] = node_dict[key]["links"]
-
+    # Add all children nodes to the extra attribute.
+    for node_id in attackgraph_dict.keys():
+        attackgraph_dict[node_id].extra = attackgraph_dict[node_id].children
+    
     # Initialize visited nodes.
     visited = set()
 
     # Mark the attacker node as visited by adding the node id to visited.
-    visited.add(attacker_node_id)
-
+    attacker_entry_point_id = attacker.node.id
+    visited.add(attacker_entry_point_id)
+    
     # Initialize the horizon nodes.
     horizon = set()
     for node in visited:
-        horizon = update_horizon(node, horizon, node_dict)
-
-    # Step by step attack simulation.
+        horizon = update_horizon(attackgraph_dict[node], horizon)
+    
+    # Begin step by step attack simulation.
     while True:
+
         print_options(STEP_BY_STEP_ATTACK_COMMANDS)
         command = input("Choose: ")
 
-        # View horizon.
+        # View current attacker horizon.
         if command == '1':
-            print_horizon(horizon, node_dict)
+            print_horizon(horizon, attackgraph_dict)
 
-        # Action.
+        # Action.   
+        # TODO consider ttc during the action.
         elif command == '2':
             # Choose next node to visit.       
-            node_options = get_horizon_with_commands(horizon)  # TODO print the node type
-            print_horizon(horizon, node_dict)
+            node_options = get_horizon_with_commands(horizon)
+            print_horizon(horizon, attackgraph_dict)
             option = input("Choose a node (id) to attack: ")
-            attack_node = node_options[int(option)]
+            attacked_node_id = node_options[int(option)]
+            attacked_node = attackgraph_dict[attacked_node_id]
 
             # Update horizon if the node can be visited.
-            if attack_node in horizon and attack_simulations.all_parents_visited(attack_node, visited, node_dict):
-                visited.add(attack_node)
-                horizon.remove(attack_node)
-                horizon = update_horizon(attack_node, horizon, node_dict)
-
-                # Store the path and horizon to file.
-                add_nodes_to_json_file(file, visited, node_dict)   
-                add_horizon_nodes_to_json_file(file, horizon, node_dict)
-
-                # Upload path.
-                upload_json_to_neo4j_database(file, graph)
+            if attacked_node_id in horizon and attack_simulations.all_parents_visited(attacker, attacked_node, visited):
+                visited.add(attacked_node_id)
+                horizon.remove(attacked_node_id)
+                horizon = update_horizon(attacked_node, horizon)
+            
+                # Upload attacker path and horizon.
+                upload_graph_to_neo4j_database(graph, visited, attackgraph_dict, horizon)
+                print("Attack step was compromised")
 
             else:
-                print("The dependency steps for ", attack_node, " has not been visited")
+                print("The required dependency steps for ", attacked_node_id, "has not been traversed by the attacker")
                 print("The node was not added to the path")
+
             # Print horizon nodes.
-            print_horizon(horizon, node_dict)
+            print_horizon(horizon, attackgraph_dict)
 
         elif command == '3':
             break
@@ -166,7 +210,7 @@ def add_horizon_nodes_to_json_file(file, nodes, node_dict):
         # Update "horizon" label.
         for node_id in nodes:
             node = node_dict[node_id]
-            node["horizon"] = True
+            #node["horizon"] = True
             data.append(node)
 
     # Write to file.
@@ -174,19 +218,19 @@ def add_horizon_nodes_to_json_file(file, nodes, node_dict):
         json.dump(data, writefile, indent=4)
     print("The attack horizon is added to the file", file)
 
-def update_horizon(node_id, nodes, node_dict):
+def update_horizon(node, horizon):
     """
     Adds the node ID:s of adjacent nodes to a node to a set.
 
     Arguments:
-    node            - the node ID.
-    nodes           - a set of node ID:s.
-    node_dict       - a dictionary on the form {node ID: node as dictionary, ...}.
+    node_id             - the node ID.
+    horizon             - a set of horizon node ID:s.
+    attackgraph_dict    - a dictionary in the format {str node ID: AttackGraphNode}.
     """
     # Add the horizon nodes.
-    for link in node_dict[node_id]['links']:
-        nodes.add(link)
-    return nodes
+    for child in node.children:
+        horizon.add(child.id)
+    return horizon
 
 def add_nodes_to_json_file(file, nodes, node_dict):
     """
@@ -207,7 +251,7 @@ def add_nodes_to_json_file(file, nodes, node_dict):
     with open(file, 'w', encoding='utf-8') as writefile:
         for node_id in nodes:
             node = node_dict[node_id]
-            node["horizon"] = False
+            #node["horizon"] = False
             data.append(node)
         # Write to file.
         json.dump(data, writefile, indent=4)
@@ -215,31 +259,30 @@ def add_nodes_to_json_file(file, nodes, node_dict):
 
 def get_horizon_with_commands(nodes):
     """
-    Builds a dictionary with an integer as keys and Node ID:s as values.
+    Builds a dictionary with an integer as keys and Node id:s as values.
 
     Arguments:
-    nodes           - a set of node ID:s.
+    nodes           - a set of node id:s.
 
     Return:
-    A dictionary on the form {integer: Node ID, ...}.
+    A dictionary on the form {str id: AttackGraphNode}.
     """
     dict = {}
-    for i, node in enumerate(nodes):
-        dict[i+1] = node
+    for i, node_id in enumerate(nodes):
+        dict[i+1] = node_id
     return dict
 
-def print_horizon(horizon, node_dict):
+def print_horizon(horizon, attackgraph_dict):
     """
-    Prints the node ID:s of a set of nodes together with a number and the node type,
-    on the form "(Integer) Node ID type".
+    Prints the node id:s of a set of nodes together with a number and the node type.
     
     Arguments:
-    horizon         - a set of node ID:s.
-    node_dict       - a dictionary on the form {id: node as dictionary, ...}.
+    horizon         - a set of horizon node id:s.
+    node_dict       - a dictionary on the form {str id: AttackGraphNode}.
     """
     print(f"{Console_colors.ATTACKER}Attacker Horizon{Console_colors.ENDC}")
-    for i, node in enumerate(horizon):
-        print("(", i+1, ")", node, node_dict[node]["type"])
+    for i, node_id in enumerate(horizon):
+        print("(", i+1, ")", node_id, attackgraph_dict[node_id].type)
     print(f"{Console_colors.ENDC}")
 
 def get_parents_for_and_nodes(attackgraph):
@@ -261,7 +304,7 @@ def get_parents_for_and_nodes(attackgraph):
         parent_list = []
         for node_2 in attackgraph:
             id_2 = node_2["id"]
-            for link in node_2["links"]:
+            for link in node_2["children"]:
                 if link == id and node_2["type"] in ["and", "or"]:
                     parent_list.append(id_2)
         n += 1
@@ -378,6 +421,16 @@ def choose_attackgraph_file(path_to_directory):
     return os.path.join(path_to_directory, file)
 
 
+def create_lookup_dict(objects: list, attribute_name: str):
+    lookup_dict = {}
+    for obj in objects:
+        attribute_value = getattr(obj, attribute_name, None)
+        print(attribute_value)
+        if attribute_value is not None:
+            lookup_dict[attribute_value] = obj
+    return lookup_dict
+
+
 def get_files_in_directory(path_to_directory):
     """
     Builds a dictionary with integers as values and all filenames in the directory as the keys. 
@@ -397,7 +450,7 @@ def get_files_in_directory(path_to_directory):
 
 def reachability_analysis(attackgraph_file, node_id):
     """
-    Applies the reachability functions from mgg.apocriphy to the attack graph. 
+    Applies the reachability functions from reachability.py to the attack graph. 
 
     Arguments:
     attackgraph_file            - the filename of the attack graph file.
@@ -407,22 +460,36 @@ def reachability_analysis(attackgraph_file, node_id):
     Attack graph with updated 'is_reachable' labels.
     """
     print("Reachability analysis")
+    attackgraph = 0
 
-    # Load attackgraph from json file
-    graph = maltoolbox.attackgraph.attackgraph.load_from_file(attackgraph_file)
+    # Create new AttackGraph instance.
+    attackgraph_object = maltoolbox.attackgraph.attackgraph.AttackGraph()
 
-    node_ids = [node_id] # TODO fix so that it is possible to attatch multiple attackers
+    # Load attackgraph from json file.
+    attackgraph_object.load_from_file(attackgraph_file)
+
+    # Build lookup dict with node ids as key, and AttackGraphNodes as values.
+    lookup_dict = create_lookup_dict(attackgraph_object.nodes, "id")
+   
+    #for node in attackgraph_object.nodes:
+    print("checkpoint1")
+    # Load coreLang language specification
     corelang_file = maltoolbox.language.specification.load_language_specification_from_mar(MAR_ARCHIVE)
-
+    print("checkpoint2")
     # Reachability analysis from the attacker node
-    attackgraph = apocriphy.attach_attacker_and_compute(corelang_file, attackgraph, node_ids)
-    return attackgraph
+    node_ids = [node_id] # TODO fix so that it is possible to attatch multiple attackers
+    
+    #id = attackgraph_object.get_node_by_id(node_id)
+    print("before")
+    attackgraph = reachability.attach_attacker_and_compute(attackgraph_object, corelang_file, attackgraph_object.nodes, node_ids)
+    print("done")
 
+    return attackgraph
 
 
 def reachability_analysis_with_pruning(attackgraph_file, file):
     """
-    Applies the reachability functions from mgg.apocriphy to the attack graph, and removes the unreachable nodes. 
+    Applies the reachability functions from reachability to the attack graph, and removes the unreachable nodes. 
 
     Arguments:
     attackgraph_file               - the filename of the attack graph file.
@@ -439,7 +506,7 @@ def reachability_analysis_with_pruning(attackgraph_file, file):
     attacker.is_reachable = True
 
     # Prune untraversable nodes
-    attackgraph = apocriphy.prune_unreachable(attackgraph)
+    attackgraph = reachability.prune_unreachable(attackgraph)
     
     # Upload graph to Neo4j
     maltoolbox.ingestors.neo4j.ingest_attack_graph(attackgraph, delete=True)
@@ -451,8 +518,11 @@ def reachability_analysis_with_pruning(attackgraph_file, file):
 
 def main():
 
-    print(f"{Console_colors.HEADER}Attack Simulation Interface{Console_colors.ENDC}")
+    # Connect to Neo4j graph database.
+    neo4j_connection = Graph("bolt://localhost:7687", auth=("neo4j", "mgg12345!"))
 
+    print(f"{Console_colors.HEADER}Attack Simulation Interface{Console_colors.ENDC}")
+   
     while True:
 
         # Select attackgraph file (.json).
@@ -464,52 +534,48 @@ def main():
         attack_simulation_results_file = "test_graphs/attack_simulation_graph.json"
         reachability_analysis_results_file = "test_graphs/reachablility_analysis_graph.json"
 
-        # Create attack graph instance
-        # attackgraph = maltoolbox.attackgraph.attackgraph.AttackGraph()    # TODO
+        # Create AttackGraph instance.
+        attackgraph = maltoolbox.attackgraph.attackgraph.AttackGraph()
 
         # Load the attack graph.
-        # attackgraph.load_from_file(file)    # TODO
-        with open(file, 'r') as readfile:
-            attackgraph = json.load(readfile)
-        
-        # Iterate over attack graph and find all dependency steps.
-        # TODO maybe this can be built when the attack graph is generated to save some time, O(n^3)? right now.
-        # attackgraph = get_parents_for_and_nodes(attackgraph)
-        
-        # Build a dictionary 'node_dict' with node id as keys and the entire json node element as the values.
-        # Here we add an attribute called "path_links" to the values which can be updated to store the results for the paths from the attack simulations.
-        node_dict = build_node_dict(attackgraph)
-        
-        # Connect to Neo4j graph database.
-        graph = Graph("bolt://localhost:7687", auth=("neo4j", "mgg12345!"))
+        attackgraph.load_from_file(file)
 
-        attacker_node_id = attackgraph[-1]["id"]   # TODO change this.
+        # Build a dictionary 'attackgraph_dict' with the node id as keys and the corresponding AttackGraphNode as the values.
+        attackgraph_dict = {node.id: node for node in attackgraph.nodes}
+      
+        # TODO fix this
+        attacker = attackgraph.attackers[1]
+        print("ATTACKER NODE ID", attacker.node.id)
+
+        step_by_step_attack_simulation(neo4j_connection, attacker, attackgraph_dict, step_by_step_results_file)
         
+        print("checkpoint 2")
+        '''
         while True:
             print_options(START_COMMANDS)
             command = input("Choose: ")
 
             if command == '1':
-                step_by_step_attack_simulation(graph, attacker_node_id, node_dict, step_by_step_results_file)
-            
+                step_by_step_attack_simulation(graph, attacker_node_id, attackgraph_dict, step_by_step_results_file)
+        
             elif command == '2':
-                attack_simulation(graph, attacker_node_id, node_dict, attack_simulation_results_file)
+                attack_simulation(graph, attacker_node_id, attackgraph_dict, attack_simulation_results_file)
         
             elif command == '3':
                 reachability_analysis_with_pruning(file, reachability_analysis_results_file)
 
             elif command == '4':
                 attackgraph = reachability_analysis(file, attacker_node_id)
-                
+                print(attackgraph)
                 # Save the graph.
-                maltoolbox.attackgraph.attackgraph.save_to_file(attackgraph)
+                #maltoolbox.attackgraph.attackgraph.save_to_file(attackgraph)
                 print("The reachable graph is saved to ", reachability_analysis_results_file)
 
                 # Upload graph to Neo4j.
-                maltoolbox.ingestors.neo4j.ingest_attack_graph(attackgraph, delete=True)
+                #maltoolbox.ingestors.neo4j.ingest_attack_graph(attackgraph, delete=True)
 
             elif command == '5':
-                break
+                break'''
 
 if __name__=='__main__':
     main()
