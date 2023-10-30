@@ -2,33 +2,36 @@ from collections import deque
 import heapq
 import random
 import re
+import maltoolbox.attackgraph.query
 
 
-def all_parents_visited(node_id, visited, node_dict):
+def all_parents_visited(attacker, node, visited):
     """
     Checks if the dependency steps for a node are completed.
     This includes also checking the reachability of the node.
 
     Arguments:
     node_id              - node ID.
-    node_dict            - a dictionary representing the attack graph.
+    attackgraph_dict     - a dictionary representing the attack graph.
 
     Return:
     True if the node is an 'or' node.
     True if the node is an 'and' node which is reachable and all dependency steps has been visited.
     Otherwise False.
+    
     """
-    if is_and_node(node_id, node_dict):
+    print("ATTACKER TYPE", type(attacker), "NODE TYPE", type(node))
+    if node.type == 'and':
         # check reachability
-        if not is_reachable(node_id, node_dict):
+        if not maltoolbox.attackgraph.query.is_node_traversable_by_attacker(node, attacker):
             return False
-        # check if all dependency steps has been visited
-        for parents in node_dict[node_id]["parent_list"]:
-            if parents not in visited:
+        # check if all dependency steps has been traversed
+        for parent in node.parents:
+            if parent not in visited:
                 return False 
     return True
 
-def is_reachable(node_id, node_dict):
+def is_reachable(node_id, attackgraph_dict):
     """
     Returns the nodes is_reachable value.
 
@@ -39,7 +42,7 @@ def is_reachable(node_id, node_dict):
     Return:
     True or False according to the is_reachable property.
     """
-    return node_dict[node_id]["is_reachable"]
+    return attackgraph_dict[node_id]["is_reachable"]
 
 def is_and_node(node_id, node_dict):
     """
@@ -52,7 +55,7 @@ def is_and_node(node_id, node_dict):
     Return:
     True if the node is an 'and' node, otherwise False.
     """
-    if node_dict[node_id]["type"] == "and":
+    if node_dict[node_id].type == "and":
        return True
     return False
 
