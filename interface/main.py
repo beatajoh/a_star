@@ -51,48 +51,42 @@ def upload_graph_to_neo4j_database(neo4j_graph, path_nodes, attackgraph_dict, ho
     attackgraph_dict      - a dictionary containing the node id:s as keys and corresponding AttackGraphNode as values.
     horizon_nodes         - a set of horizon attack steps.
     """
+    if path_nodes.intersection(horizon_nodes):  # TODO FIX
+        print("The sets have overlapping values.")
+        return []
+    
     nodes = {}
     neo4j_graph.delete_all()
 
     for node_id in path_nodes:
         node = attackgraph_dict[node_id]
 
-        if node["ttc"] != None:
+        if node.ttc != None:
             ttc_type = node.ttc["type"]
             ttc_name = node.ttc["name"]
             ttc_arguments = node.ttc["arguments"]
             # TODO calculate the ttc cost.
             ttc_cost = 1
-        elif node["ttc"] == None:
+        elif node.ttc == None:
             ttc_cost = 1
 
-        # Build attacker in Neo4j
-        if node.name == "firstSteps":
-            node_obj = Node(
-                id = node.id,
-                type = node.type,
-                name = node.name,
-                horizon = False
-            )
-
-        # Build attack steps for Neo4j
-        else: 
-            node_obj = Node(
-                id = node.id,
-                type = node.type,
-                asset = node.asset,
-                name = node.name,
-                horizon = False,
-                ttc_cost = ttc_cost
-                #ttc = node.ttc,
-                #children = node.children,
-                #parents = node.parents,
-                #compromised_by = node.compromised_by
-            )
+        # Build attack steps for Neo4j.
+        node_obj = Node(
+            id = node.id,
+            type = node.type,
+            asset = node.asset,
+            name = node.name,
+            horizon = False,
+            ttc_cost = ttc_cost
+            #ttc = node.ttc,
+            #children = node.children,
+            #parents = node.parents,
+            #compromised_by = node.compromised_by
+        )
         neo4j_graph.create(node_obj)
         nodes[node.id] = node_obj
     
-    # Build horizon attack steps for Neo4j
+    # Build horizon attack steps for Neo4j.
     if horizon_nodes != None:
         for node_id in horizon_nodes:
             node = attackgraph_dict[node_id]
@@ -115,16 +109,17 @@ def upload_graph_to_neo4j_database(neo4j_graph, path_nodes, attackgraph_dict, ho
     for id in attackgraph_dict.keys():
         if id in nodes.keys():
             node = attackgraph_dict[id]
-            for child in node.extra:
+            for child in node.children:
                 if child.id in nodes.keys():
                     from_node = nodes[id]
                     to_node = nodes[child.id]
                     if (from_node['horizon'] == False and to_node['horizon'] == False) or \
                        (from_node['horizon'] == False and to_node['horizon'] == True):
+                        print("from_node", id, "to_node", child.id)
                         relationship = Relationship(from_node, "Relationship", to_node)
                         neo4j_graph.create(relationship)
 
-def step_by_step_attack_simulation(graph, attacker, attackgraph_dict, file):
+def step_by_step_attack_simulation(graph, attacker, attackgraph_dict):
     """
     Main function for the step by step attack simulation. 
 
@@ -133,13 +128,14 @@ def step_by_step_attack_simulation(graph, attacker, attackgraph_dict, file):
     attacker             - the Attacker instance.
     attackgraph_dict     - the attackgraph as a dictionary with a string node id as key 
                            and AttackGraphNode as value.
-    file                 - name of the file to store the result to.
+    Return:
+    list of all AttackGraphNodes.
     """
     print(f"{Console_colors.HEADER}Step by step attack{Console_colors.ENDC}")
 
     # Add all children nodes to the extra attribute.
-    for node_id in attackgraph_dict.keys():
-        attackgraph_dict[node_id].extra = attackgraph_dict[node_id].children
+    #for node_id in attackgraph_dict.keys():
+    #    attackgraph_dict[node_id].extra = attackgraph_dict[node_id].children
     
     # Initialize visited nodes.
     visited = set()
@@ -164,7 +160,6 @@ def step_by_step_attack_simulation(graph, attacker, attackgraph_dict, file):
             print_horizon(horizon, attackgraph_dict)
 
         # Action.   
-        # TODO consider ttc during the action.
         elif command == '2':
             # Choose next node to visit.       
             node_options = get_horizon_with_commands(horizon)
@@ -176,9 +171,12 @@ def step_by_step_attack_simulation(graph, attacker, attackgraph_dict, file):
             # Update horizon if the node can be visited.
             if attacked_node_id in horizon and attack_simulations.all_parents_visited(attacker, attacked_node, visited):
                 visited.add(attacked_node_id)
-                horizon.remove(attacked_node_id)
                 horizon = update_horizon(attacked_node, horizon)
-            
+                horizon.remove(attacked_node_id)
+                
+                # Update the AttackGraphNode status.
+                attacked_node.compromised_by.append(attacker)
+
                 # Upload attacker path and horizon.
                 upload_graph_to_neo4j_database(graph, visited, attackgraph_dict, horizon)
                 print("Attack step was compromised")
@@ -191,7 +189,8 @@ def step_by_step_attack_simulation(graph, attacker, attackgraph_dict, file):
             print_horizon(horizon, attackgraph_dict)
 
         elif command == '3':
-            break
+            # Return all AttackGraphNodes.
+            return list(attackgraph_dict.values())
 
 def add_horizon_nodes_to_json_file(file, nodes, node_dict):
     """
@@ -545,19 +544,18 @@ def main():
       
         # TODO fix this
         attacker = attackgraph.attackers[1]
-        print("ATTACKER NODE ID", attacker.node.id)
-
-        step_by_step_attack_simulation(neo4j_connection, attacker, attackgraph_dict, step_by_step_results_file)
+        print("ATTACKER NODE ID", attacker.node.id)        
         
-        print("checkpoint 2")
-        '''
         while True:
             print_options(START_COMMANDS)
             command = input("Choose: ")
 
             if command == '1':
-                step_by_step_attack_simulation(graph, attacker_node_id, attackgraph_dict, step_by_step_results_file)
-        
+                attackgraph.nodes = step_by_step_attack_simulation(neo4j_connection, attacker, attackgraph_dict)
+                
+                # Save the attack graph.
+                attackgraph.save_to_file(step_by_step_results_file)
+            '''
             elif command == '2':
                 attack_simulation(graph, attacker_node_id, attackgraph_dict, attack_simulation_results_file)
         
