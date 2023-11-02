@@ -41,9 +41,9 @@ ATTACK_SIMULATION_COMMANDS = {
 
 MAR_ARCHIVE = "assets/org.mal-lang.coreLang-0.3.0.mar"
 
-def upload_graph_to_neo4j_database(neo4j_graph, path_nodes, attackgraph_dict, horizon_nodes=None):
+def upload_graph_to_neo4j(neo4j_graph, path_nodes, attackgraph_dict, horizon_nodes=None):
     """
-    Uploads the traversed path and attacker horizon (optional) by the attacker to Neo4j.
+    Uploads the traversed path and attacker horizon (optional) by the attacker to the Neo4j database.
 
     Arguments:
     neo4j_graph           - connection to the graph database in Neo4j.
@@ -51,24 +51,12 @@ def upload_graph_to_neo4j_database(neo4j_graph, path_nodes, attackgraph_dict, ho
     attackgraph_dict      - a dictionary containing the node id:s as keys and corresponding AttackGraphNode as values.
     horizon_nodes         - a set of horizon attack steps.
     """
-    if path_nodes.intersection(horizon_nodes):  # TODO FIX
-        print("The sets have overlapping values.")
-        return []
     
     nodes = {}
     neo4j_graph.delete_all()
 
     for node_id in path_nodes:
         node = attackgraph_dict[node_id]
-
-        if node.ttc != None:
-            ttc_type = node.ttc["type"]
-            ttc_name = node.ttc["name"]
-            ttc_arguments = node.ttc["arguments"]
-            # TODO calculate the ttc cost.
-            ttc_cost = 1
-        elif node.ttc == None:
-            ttc_cost = 1
 
         # Build attack steps for Neo4j.
         node_obj = Node(
@@ -77,7 +65,6 @@ def upload_graph_to_neo4j_database(neo4j_graph, path_nodes, attackgraph_dict, ho
             asset = node.asset,
             name = node.name,
             horizon = False,
-            ttc_cost = ttc_cost
             #ttc = node.ttc,
             #children = node.children,
             #parents = node.parents,
@@ -96,7 +83,6 @@ def upload_graph_to_neo4j_database(neo4j_graph, path_nodes, attackgraph_dict, ho
                     asset = node.asset,
                     name = node.name,
                     horizon = True,
-                    ttc_cost = ttc_cost
                     #ttc = node.ttc,
                     #children = node.children,
                     #parents = node.parents,
@@ -115,16 +101,24 @@ def upload_graph_to_neo4j_database(neo4j_graph, path_nodes, attackgraph_dict, ho
                     to_node = nodes[child.id]
                     if (from_node['horizon'] == False and to_node['horizon'] == False) or \
                        (from_node['horizon'] == False and to_node['horizon'] == True):
-                        print("from_node", id, "to_node", child.id)
                         relationship = Relationship(from_node, "Relationship", to_node)
                         neo4j_graph.create(relationship)
 
-def step_by_step_attack_simulation(graph, attacker, attackgraph_dict):
+def upload_attacker_to_neo4j(neo4j_graph, attacker, node_id):
+    attacker_node = Node(
+        name = "Attacker",
+        id = attacker.id
+    )
+    node = neo4j_graph.nodes.match(id=node_id).first()
+    relationship = Relationship(attacker_node, "Attack", node)
+    neo4j_graph.create(relationship)
+
+def step_by_step_attack_simulation(neo4j_graph, attacker, attackgraph_dict):
     """
     Main function for the step by step attack simulation. 
 
     Arguments:
-    graph                - connection to the graph database in Neo4j.
+    neo4j_graph                - connection to the graph database in Neo4j.
     attacker             - the Attacker instance.
     attackgraph_dict     - the attackgraph as a dictionary with a string node id as key 
                            and AttackGraphNode as value.
@@ -147,7 +141,7 @@ def step_by_step_attack_simulation(graph, attacker, attackgraph_dict):
     # Initialize the horizon nodes.
     horizon = set()
     for node in visited:
-        horizon = update_horizon(attackgraph_dict[node], horizon)
+        horizon = update_horizon(attackgraph_dict[node], horizon, visited)
     
     # Begin step by step attack simulation.
     while True:
@@ -171,14 +165,15 @@ def step_by_step_attack_simulation(graph, attacker, attackgraph_dict):
             # Update horizon if the node can be visited.
             if attacked_node_id in horizon and attack_simulations.all_parents_visited(attacker, attacked_node, visited):
                 visited.add(attacked_node_id)
-                horizon = update_horizon(attacked_node, horizon)
                 horizon.remove(attacked_node_id)
+                horizon = update_horizon(attacked_node, horizon, visited)
                 
                 # Update the AttackGraphNode status.
                 attacked_node.compromised_by.append(attacker)
 
                 # Upload attacker path and horizon.
-                upload_graph_to_neo4j_database(graph, visited, attackgraph_dict, horizon)
+                upload_graph_to_neo4j(neo4j_graph, visited, attackgraph_dict, horizon)
+                upload_attacker_to_neo4j(neo4j_graph, attacker, attacked_node_id)
                 print("Attack step was compromised")
 
             else:
@@ -217,18 +212,19 @@ def add_horizon_nodes_to_json_file(file, nodes, node_dict):
         json.dump(data, writefile, indent=4)
     print("The attack horizon is added to the file", file)
 
-def update_horizon(node, horizon):
+def update_horizon(node, horizon, visited):
     """
     Adds the node ID:s of adjacent nodes to a node to a set.
 
     Arguments:
-    node_id             - the node ID.
-    horizon             - a set of horizon node ID:s.
-    attackgraph_dict    - a dictionary in the format {str node ID: AttackGraphNode}.
+    node                - the AttackGraphNode node.
+    horizon             - a set of horizon node id:s.
+    visited             - a set of visited node id:s
     """
     # Add the horizon nodes.
     for child in node.children:
-        horizon.add(child.id)
+        if child.id not in visited:
+            horizon.add(child.id)
     return horizon
 
 def add_nodes_to_json_file(file, nodes, node_dict):
