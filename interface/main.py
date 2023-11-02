@@ -18,8 +18,8 @@ class Console_colors:
     BOLD = '\033[1m'
 
 START_COMMANDS = {
-    "1": "step-by-step-attack",
-    "2": "attack-simulation",
+    "1": "step by step attack",
+    "2": "shortest path with dijkstra",
     "3": "reachability-analysis-with-pruning",
     "4": "reachability-analysis",
     "5": "exit"
@@ -95,7 +95,7 @@ def upload_graph_to_neo4j(neo4j_graph, path_nodes, attackgraph_dict, horizon_nod
     for id in attackgraph_dict.keys():
         if id in nodes.keys():
             node = attackgraph_dict[id]
-            for child in node.children:
+            for child in node.extra:
                 if child.id in nodes.keys():
                     from_node = nodes[id]
                     to_node = nodes[child.id]
@@ -105,6 +105,13 @@ def upload_graph_to_neo4j(neo4j_graph, path_nodes, attackgraph_dict, horizon_nod
                         neo4j_graph.create(relationship)
 
 def upload_attacker_to_neo4j(neo4j_graph, attacker, node_id):
+    """
+    Connects the attacker node to a existing node in the graph with id = node_id.
+    
+    neo4j_graph          - connection to the graph database in Neo4j.
+    attacker             - the Attacker instance. 
+    node_id              - id of a node in the graph.      
+    """
     attacker_node = Node(
         name = "Attacker",
         id = attacker.id
@@ -118,7 +125,7 @@ def step_by_step_attack_simulation(neo4j_graph, attacker, attackgraph_dict):
     Main function for the step by step attack simulation. 
 
     Arguments:
-    neo4j_graph                - connection to the graph database in Neo4j.
+    neo4j_graph          - connection to the graph database in Neo4j.
     attacker             - the Attacker instance.
     attackgraph_dict     - the attackgraph as a dictionary with a string node id as key 
                            and AttackGraphNode as value.
@@ -128,8 +135,8 @@ def step_by_step_attack_simulation(neo4j_graph, attacker, attackgraph_dict):
     print(f"{Console_colors.HEADER}Step by step attack{Console_colors.ENDC}")
 
     # Add all children nodes to the extra attribute.
-    #for node_id in attackgraph_dict.keys():
-    #    attackgraph_dict[node_id].extra = attackgraph_dict[node_id].children
+    for node_id in attackgraph_dict.keys():
+        attackgraph_dict[node_id].extra = attackgraph_dict[node_id].children
     
     # Initialize visited nodes.
     visited = set()
@@ -145,7 +152,6 @@ def step_by_step_attack_simulation(neo4j_graph, attacker, attackgraph_dict):
     
     # Begin step by step attack simulation.
     while True:
-
         print_options(STEP_BY_STEP_ATTACK_COMMANDS)
         command = input("Choose: ")
 
@@ -177,7 +183,7 @@ def step_by_step_attack_simulation(neo4j_graph, attacker, attackgraph_dict):
                 print("Attack step was compromised")
 
             else:
-                print("The required dependency steps for ", attacked_node_id, "has not been traversed by the attacker")
+                print("The required dependency steps for", attacked_node_id, "has not been traversed by the attacker")
                 print("The node was not added to the path")
 
             # Print horizon nodes.
@@ -493,7 +499,7 @@ def reachability_analysis_with_pruning(attackgraph_file, file):
     print("Reachability analysis with pruning of unreachable nodes")
     id = input("Attatch the attacker to node id (e.g. Network:8176711980537409:access): ")
     
-    # Reachability analysis from the attacker node
+    # Reachability analysis from the attacker node.
     attackgraph = reachability_analysis(attackgraph_file, id)   # TODO fix so that it is possible to attatch multiple attackers
 
     # Modify the attacker node so that we can prune the untraversable nodes
@@ -514,12 +520,12 @@ def reachability_analysis_with_pruning(attackgraph_file, file):
 def main():
 
     # Connect to Neo4j graph database.
-    neo4j_connection = Graph("bolt://localhost:7687", auth=("neo4j", "mgg12345!"))
+    neo4j_graph = Graph("bolt://localhost:7687", auth=("neo4j", "mgg12345!"))
 
     print(f"{Console_colors.HEADER}Attack Simulation Interface{Console_colors.ENDC}")
    
     while True:
-
+        # TODO change this to use the default \tmp folder
         # Select attackgraph file (.json).
         directory = "test_graphs/"
         file = choose_attackgraph_file(directory)
@@ -547,14 +553,24 @@ def main():
             command = input("Choose: ")
 
             if command == '1':
-                attackgraph.nodes = step_by_step_attack_simulation(neo4j_connection, attacker, attackgraph_dict)
+                attackgraph.nodes = step_by_step_attack_simulation(neo4j_graph, attacker, attackgraph_dict)
                 
                 # Save the attack graph.
                 attackgraph.save_to_file(step_by_step_results_file)
-            '''
+
             elif command == '2':
-                attack_simulation(graph, attacker_node_id, attackgraph_dict, attack_simulation_results_file)
-        
+                print("Shortest path Dijkstra")
+                attacker_entry_point_id = attacker.node.id
+                target_node_id = input("Enter target node id: ")
+                result = attack_simulations.dijkstra(attacker, attacker_entry_point_id, target_node_id, attackgraph_dict)
+                if result != None:
+                    total_cost = result[0]
+                    attackgraph_dict_with_path = result[1]
+                    visited = result[2]
+                    print("Total cost: ", total_cost)
+                    upload_graph_to_neo4j(neo4j_graph, visited, attackgraph_dict_with_path)
+             
+            '''
             elif command == '3':
                 reachability_analysis_with_pruning(file, reachability_analysis_results_file)
 
