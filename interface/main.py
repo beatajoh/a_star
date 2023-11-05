@@ -20,8 +20,9 @@ class Console_colors:
 START_COMMANDS = {
     "1": "step by step attack",
     "2": "shortest path with dijkstra",
-    "3": "reachability-analysis-with-pruning",
-    "4": "reachability-analysis",
+    "3": "random path",
+    #"3": "reachability-analysis-with-pruning",
+    #"4": "reachability-analysis",
     "5": "exit"
     }
 
@@ -546,7 +547,8 @@ def main():
       
         # TODO fix this
         attacker = attackgraph.attackers[1]
-        print("ATTACKER NODE ID", attacker.node.id)        
+        print("ATTACKER NODE ID", attacker.node.id) 
+        attacker_entry_point_id = attacker.node.id       
         
         while True:
             print_options(START_COMMANDS)
@@ -560,7 +562,6 @@ def main():
 
             elif command == '2':
                 print("Shortest path Dijkstra")
-                attacker_entry_point_id = attacker.node.id
                 target_node_id = input("Enter target node id: ")
                 result = attack_simulations.dijkstra(attacker, attacker_entry_point_id, target_node_id, attackgraph_dict)
                 if result != None:
@@ -570,6 +571,25 @@ def main():
                     print("Total cost: ", total_cost)
                     upload_graph_to_neo4j(neo4j_graph, visited, attackgraph_dict_with_path)
              
+            elif command == '3':
+                print("Random path")
+                target_node_id = input("Enter target node id (press enter to run without target): ")
+                cost_budget = input("Enter cost budget (press enter to run without target): ")
+                if target_node_id == "":
+                    target_node_id = None
+                if cost_budget != "":
+                    cost_budget = int(cost_budget)
+                if cost_budget == "":
+                    cost_budget = None
+                result = attack_simulations.random_path(attacker, attacker_entry_point_id, attackgraph_dict, target_node_id = target_node_id, cost_budget = cost_budget)
+                if result != None:
+                    total_cost = result[0]
+                    attackgraph_dict_with_path = result[1]
+                    visited = result[2]
+                    print("Total cost: ", total_cost)
+                    print(visited)
+                    upload_graph_to_neo4j(neo4j_graph, visited, attackgraph_dict_with_path)
+
             '''
             elif command == '3':
                 reachability_analysis_with_pruning(file, reachability_analysis_results_file)

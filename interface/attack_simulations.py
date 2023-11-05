@@ -244,7 +244,7 @@ def dijkstra(attacker, start_node, target_node, node_dict):
                     came_from[neighbor.id].append(current_node)
     return 
 
-def random_path(start_node, node_dict, target_node=None, cost_budget=None):
+def random_path(attacker, start_node, node_dict, target_node_id=None, cost_budget=None):
     """
     Get a random path in the attack graph. 
     It is possible to search for a target_node and/or use a cost_budget.
@@ -262,6 +262,9 @@ def random_path(start_node, node_dict, target_node=None, cost_budget=None):
     visited              - a set of nodes in the path.
     """
     node_ids = list(node_dict.keys())
+    # prepare the AttackGraphNode.extra attribute so we can store the path there.
+    for id in node_ids:
+        node_dict[id].extra = []
     visited = set()  
     visited.add(start_node)
     came_from = dict.fromkeys(node_ids, '')
@@ -269,39 +272,40 @@ def random_path(start_node, node_dict, target_node=None, cost_budget=None):
     target_found = False
     unreachable_horizon_nodes = set()
     # initialize the attack horizon
-    for node_id in node_dict[start_node]["links"]:
-        horizon.add(node_id)
-        came_from[node_id] = start_node
+    for node in node_dict[start_node].children:
+        horizon.add(node.id)
+        came_from[node.id] = start_node
     costs = get_costs(node_dict)
     cost = 0
-    if target_node == None and cost_budget == None:
+    if target_node_id == None and cost_budget == None:
         return cost, node_dict, visited
     while len(horizon) > 0 and unreachable_horizon_nodes != horizon:
-        node = random.choice(list(horizon))
+        next_node = random.choice(list(horizon))
         # attack unvisited node
-        if all_parents_visited(node, visited, node_dict):
-            if cost_budget != None and cost+costs[node] > cost_budget:
+        if all_parents_visited(attacker, node_dict[next_node], visited):
+            if cost_budget != None and cost+costs[next_node] > cost_budget:
                 break
-            visited.add(node)
-            node_dict[came_from[node]]["path_links"].append(node) 
-            cost += costs[node]
-            if node in unreachable_horizon_nodes:
+            visited.add(next_node)
+            node_dict[came_from[next_node]].extra.append(node_dict[next_node])
+            cost += costs[next_node]
+            if next_node in unreachable_horizon_nodes:
                 unreachable_horizon_nodes.remove(node)
             # update the horizon
-            horizon.remove(node)
-            for node_id in node_dict[node]['links']:
-                horizon.add(node_id)
-                came_from[node_id] = node
+            horizon.remove(next_node)
+            for node in node_dict[next_node].children:
+                horizon.add(node.id)
+                came_from[node.id] = next_node
             # check if the target was selected
-            if target_node != None and node == target_node:
+            if target_node_id != None and node == target_node_id:
                 target_found = True
-                print("The target,", target_node,"was found!")
+                print("The target,", target_node_id,"was found!")
                 break
         else:
-            unreachable_horizon_nodes.add(node)
+            unreachable_horizon_nodes.add(next_node)
     # check if the target never was selected in the path
-    if target_node != None and target_found == False:
-        print("The target,", target_node, "was not found!")
+    if target_node_id != None and target_found == False:
+        print("The target,", target_node_id, "was not found!")
+    print(came_from)
     return cost, node_dict, visited
 
 # all AO* functions are below here:
