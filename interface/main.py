@@ -28,39 +28,40 @@ def main():
     
     # TODO select one attacker.
     attacker = attackgraph.attackers[1]
-    print("ATTACKER ENTRY POINT ATTACK STEP ID IS", attacker.node.id) 
+    print("Attacker entry point (attack step id) is:", attacker.node.id, end="\n") 
 
     # Create AttackSimulation instance.
     attack_simulation = AttackSimulation(attackgraph, attackgraph_dictionary, attacker)
     
-    attack_options = constants.ATTACK_OPTIONS.keys()
+    attack_options = list(constants.ATTACK_OPTIONS.keys())
 
     while True:
         # Display algorithm options.
+        print(f"{constants.HEADER_COLOR}Choose any of the options below. If you want to exit, press any key.{constants.STANDARD}")
         help_functions.print_dictionary(constants.ATTACK_OPTIONS) 
-        user_input = int(input(f"which simulation? ({attack_options}):"))
+        user_input = input(f"which simulation? {attack_options}:")
 
         if user_input == attack_options[0]:
             # Traverse attack graph step by step.
-            print(f"{constants.HEADER_COLOR}{constants.ATTACK_OPTIONS[0]}{constants.STANDARD}")
+            print(f"{constants.HEADER_COLOR}{constants.ATTACK_OPTIONS[user_input]}{constants.STANDARD}")
             attack_simulation.step_by_step_attack_simulation(neo4j_graph_connection)
             attack_simulation.upload_graph_to_neo4j(neo4j_graph_connection, add_horizon=True)
 
         elif user_input == attack_options[1]:
             # Traverse attack graph with Dijkstra's algorithm (to get the shortest path).
             # EXAMPLE: set target_node_id as "Application:4:attemptApplicationRespondConnectThroughData"
-            print(f"{constants.HEADER_COLOR}{constants.ATTACK_OPTIONS[1]}{constants.STANDARD}")
+            print(f"{constants.HEADER_COLOR}{constants.ATTACK_OPTIONS[user_input]}{constants.STANDARD}")
             target_node_id = input("Enter the target node id: ")
             if target_node_id in attack_simulation.attackgraph_dictionary.keys():
                 attack_simulation.set_target_node(target_node_id)
-                cost, _ = attack_simulation.dijkstra()
+                cost = attack_simulation.dijkstra()
                 print("The cost for the attacker for traversing the path", cost)
                 attack_simulation.upload_graph_to_neo4j(neo4j_graph_connection, add_horizon=False)
 
         elif user_input == attack_options[2]:
             # Traverse attack graph with random walker algorithm (to get a random path).
             # It is optional to enter a target or attacker cost budget.
-            print(f"{constants.HEADER_COLOR}{constants.ATTACK_OPTIONS[2]}{constants.STANDARD}")
+            print(f"{constants.HEADER_COLOR}{constants.ATTACK_OPTIONS[user_input]}{constants.STANDARD}")
             target_node_id = input("Enter the target node id (or press enter): ")
             if target_node_id in attack_simulation.attackgraph_dictionary.keys():
                 attack_simulation.set_target_node(target_node_id)
@@ -74,7 +75,7 @@ def main():
         elif user_input == attack_options[3]:
             # Traverse attack graph with breadth first search to retrieve all "traversable" steps within the attacker
             # cost budget.
-            print(f"{constants.HEADER_COLOR}{constants.ATTACK_OPTIONS[3]}{constants.STANDARD}")
+            print(f"{constants.HEADER_COLOR}{constants.ATTACK_OPTIONS[user_input]}{constants.STANDARD}")
             attacker_cost_budget = input("Enter the attacker cost budget as integer (or press enter): ")
             if attacker_cost_budget != '':
                 attack_simulation.set_attacker_cost_budget(int(attacker_cost_budget))
