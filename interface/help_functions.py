@@ -1,7 +1,4 @@
-from typing import List
 import constants
-import maltoolbox
-import maltoolbox.attackgraph.attackgraph
 
 def print_dictionary(dict):
     """
