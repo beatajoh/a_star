@@ -3,7 +3,7 @@ import maltoolbox
 import maltoolbox.attackgraph.attackgraph
 import maltoolbox.ingestors.neo4j
 
-# custom files
+# Custom files
 from attack_simulation import AttackSimulation
 import constants
 import help_functions
