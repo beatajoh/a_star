@@ -1,9 +1,8 @@
 from py2neo import Graph
-import maltoolbox
 import maltoolbox.attackgraph.attackgraph
 import maltoolbox.ingestors.neo4j
 
-# custom files
+# Custom files.
 from attack_simulation import AttackSimulation
 import constants
 import help_functions
@@ -12,8 +11,10 @@ import help_functions
 def main():
 
     # Connect to Neo4j graph database.
-    neo4j_graph_connection = Graph("bolt://localhost:7687", auth=("neo4j", "mgg12345!"))
-    
+    neo4j_graph_connection = Graph(constants.URI, auth=(constants.USERNAME, constants.PASSWORD))
+    print("Connected to Neo4j database.")
+
+
     # Create mal-toolbox AttackGraph instance.
     attackgraph = maltoolbox.attackgraph.attackgraph.AttackGraph()
 
@@ -23,15 +24,17 @@ def main():
     # Load the attack graph.
     attackgraph.load_from_file(file)
 
-    # Build a dictionary 'attackgraph_dictionary' with the node id as keys and the corresponding AttackGraphNode as the values.
-    attackgraph_dictionary = {node.id: node for node in attackgraph.nodes}
+    # Upload the attack graph to Neo4j.
+    print("Starting uploading the attackgraph to Neo4j.")
+    maltoolbox.ingestors.neo4j.ingest_attack_graph(attackgraph, constants.URI, constants.USERNAME, constants.PASSWORD, constants.DBNAME, delete=True)
+    print("The attackgraph is uploaded to Neo4j.")
     
-    # TODO select one attacker.
-    attacker = attackgraph.attackers[1]
-    print("Attacker entry point (attack step id) is:", attacker.node.id, end="\n") 
+    # TODO Select one attacker.
+    attacker = attackgraph.attackers[0]
+    print("Attacker entry point (attack step id) is:", attacker.node.id, end="\n\n") 
 
     # Create AttackSimulation instance.
-    attack_simulation = AttackSimulation(attackgraph, attackgraph_dictionary, attacker)
+    attack_simulation = AttackSimulation(attackgraph, attacker)
     
     attack_options = list(constants.ATTACK_OPTIONS.keys())
 

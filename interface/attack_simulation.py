@@ -10,25 +10,24 @@ import random
 
 class AttackSimulation:
     
-    def __init__(self, attackgraph_instance, attackgraph_dictionary, attacker):
+    def __init__(self, attackgraph_instance, attacker):
         """
         Initialize the AttackSimulation instance.
 
         Parameters:
         - attackgraph_instance: An instance of the AttackGraph class.
-        - attackgraph_dictionary: A dictionary representing the attack graph.
         - attacker: An instance of the Attacker class.
         """
         self.attackgraph_instance = attackgraph_instance
-        self.attackgraph_dictionary = attackgraph_dictionary
+        self.attackgraph_dictionary = {node.id: node for node in attackgraph_instance.nodes}
         self.attacker = attacker
-        self.path = {key: [] for key in attackgraph_dictionary.keys()}
+        self.path = {key: [] for key in self.attackgraph_dictionary.keys()}
         self.horizon = set()
         self.visited = set()
         self.start_node = attacker.node.id
         self.target_node = None
         self.attacker_cost_budget = None
-
+    
     def set_target_node(self, target_node):
         """
         Set the target node for the simulation.
@@ -79,7 +78,7 @@ class AttackSimulation:
         """
         dict = {}
         for i, node_id in enumerate(self.horizon):
-            dict[i+1] = node_id + self.attackgraph_dictionary[node_id].type
+            dict[i+1] = [node_id, self.attackgraph_dictionary[node_id].type]
         return dict
 
     def step_by_step_attack_simulation(self, neo4j_graph_connection):
@@ -106,6 +105,7 @@ class AttackSimulation:
         
         # Begin step by step attack simulation.
         while True:
+            print("\n")
             help_functions.print_dictionary(constants.STEP_BY_STEP_ATTACK_COMMANDS)
             command = input("Choose: ")
 
@@ -119,7 +119,7 @@ class AttackSimulation:
                 node_options = self.build_horizon_dict()
                 self.print_horizon()
                 option = input("Choose a node (id) to attack: ")
-                attacked_node_id = node_options[int(option)]
+                attacked_node_id = node_options[int(option)][0] # Select the node id at index 0.
                 attacked_node = self.attackgraph_dictionary[attacked_node_id]
 
                 # Update horizon if the node can be visited.
@@ -348,7 +348,7 @@ class AttackSimulation:
         """
         dict = {}
         for node in self.attackgraph_instance.nodes:
-            dict[node.id] = 2
+            dict[node.id] = 1
         return dict
 
 
@@ -429,9 +429,9 @@ class AttackSimulation:
             node, cost = queue.popleft()
             # Explore the horizon of the current node.
             for link in self.attackgraph_dictionary[node].children: # TODO Assuming the horizon is the direct children attack steps.
-                cost = cost + costs[link.id]
-                if link.id not in self.visited and cost <= self.attacker_cost_budget:
+                next_cost = cost + costs[link.id]
+                if link.id not in self.visited and next_cost <= self.attacker_cost_budget:
                     self.visited.add(link.id)
-                    queue.append((link.id, cost))
+                    queue.append((link.id, next_cost))
                     self.path[node].append(link)
         return cost

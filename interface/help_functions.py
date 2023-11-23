@@ -13,6 +13,8 @@ def print_dictionary(dict):
     for command in dict:
         description = dict[command]
         print(f"{constants.BOLD}", "(", command, ")", end=" ")
+        if type(description) == list:
+            description = description[0] + " " + description[1]
         print(f"{constants.BOLD}", description)
     print(f"{constants.STANDARD}",end="")
 
