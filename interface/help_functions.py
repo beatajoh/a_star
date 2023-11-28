@@ -14,7 +14,9 @@ def print_dictionary(dict):
         description = dict[command]
         print(f"{constants.BOLD}", "(", command, ")", end=" ")
         if type(description) == list:
-            description = description[0] + " " + description[1]
+            description_str = ""
+            for elem in description:
+                description_str += elem + " "
+            description = description_str
         print(f"{constants.BOLD}", description)
     print(f"{constants.STANDARD}",end="")
-

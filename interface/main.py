@@ -9,11 +9,9 @@ import help_functions
 
 
 def main():
-
     # Connect to Neo4j graph database.
     neo4j_graph_connection = Graph(constants.URI, auth=(constants.USERNAME, constants.PASSWORD))
     print("Connected to Neo4j database.")
-
 
     # Create mal-toolbox AttackGraph instance.
     attackgraph = maltoolbox.attackgraph.attackgraph.AttackGraph()
@@ -34,15 +32,14 @@ def main():
     print("Attacker entry point (attack step id) is:", attacker.node.id, end="\n\n") 
 
     # Create AttackSimulation instance.
-    attack_simulation = AttackSimulation(attackgraph, attacker)
-    
+    attack_simulation = AttackSimulation(attackgraph, attacker)    
     attack_options = list(constants.ATTACK_OPTIONS.keys())
 
     while True:
         # Display algorithm options.
         print(f"{constants.HEADER_COLOR}Choose any of the options below. If you want to exit, press any key.{constants.STANDARD}")
         help_functions.print_dictionary(constants.ATTACK_OPTIONS) 
-        user_input = input(f"which simulation? {attack_options}:")
+        user_input = input(f"Which simulation? {attack_options}:")
 
         if user_input == attack_options[0]:
             # Traverse attack graph step by step.
@@ -51,7 +48,7 @@ def main():
             attack_simulation.upload_graph_to_neo4j(neo4j_graph_connection, add_horizon=True)
 
         elif user_input == attack_options[1]:
-            # Traverse attack graph with Dijkstra's algorithm (to get the shortest path).
+            # Traverse attack graph with Dijkstra's algorithm, to get the shortest path.
             # EXAMPLE: set target_node_id as "Application:4:attemptApplicationRespondConnectThroughData"
             print(f"{constants.HEADER_COLOR}{constants.ATTACK_OPTIONS[user_input]}{constants.STANDARD}")
             target_node_id = input("Enter the target node id: ")
@@ -59,6 +56,7 @@ def main():
                 attack_simulation.set_target_node(target_node_id)
                 cost = attack_simulation.dijkstra()
                 print("The cost for the attacker for traversing the path", cost)
+                print("print!", attack_simulation.visited)
                 attack_simulation.upload_graph_to_neo4j(neo4j_graph_connection, add_horizon=False)
 
         elif user_input == attack_options[2]:

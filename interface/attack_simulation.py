@@ -78,7 +78,8 @@ class AttackSimulation:
         """
         dict = {}
         for i, node_id in enumerate(self.horizon):
-            dict[i+1] = [node_id, self.attackgraph_dictionary[node_id].type]
+            node = self.attackgraph_dictionary[node_id]
+            dict[i+1] = [node_id, node.type, str(maltoolbox.attackgraph.query.is_node_traversable_by_attacker(node, self.attacker))]
         return dict
 
     def step_by_step_attack_simulation(self, neo4j_graph_connection):
@@ -123,10 +124,11 @@ class AttackSimulation:
                 attacked_node = self.attackgraph_dictionary[attacked_node_id]
 
                 # Update horizon if the node can be visited.
-                if attacked_node_id in self.horizon and self.check_move(attacked_node):
+                if attacked_node_id in self.horizon and maltoolbox.attackgraph.query.is_node_traversable_by_attacker(attacked_node, self.attacker):
                     self.visited.add(attacked_node_id)
                     self.horizon.remove(attacked_node_id)
                     self.add_children_to_horizon(attacked_node)
+                    self.attacker.reached_attack_steps.append(attacked_node_id)
                     
                     # Update the AttackGraphNode status.
                     attacked_node.compromised_by.append(self.attacker)
@@ -142,40 +144,6 @@ class AttackSimulation:
             elif command == '3':
                 # Return
                 return
-            
-    def check_move(self, node):
-        """
-        Check if an attack step is traversable.
-
-        This method evaluates the traversability of an attack step, considering both the
-        node type ('or' or 'and') and the reachability of the node. For 'or' nodes,
-        it returns True. For 'and' nodes, it checks if the node is reachable by the
-        attacker and if all dependency steps have been visited, returning True in that
-        case. Otherwise, it returns False.
-
-        Parameters:
-        - node: The AttackGraphNode instance to be checked for traversability.
-
-        Returns:
-        - True if the node is an 'or' node.
-        - True if the node is an 'and' node which is reachable and all parent attack steps
-        have been visited.
-        - False otherwise.
-
-        Notes:
-        - The function assumes the existence of the following instance variables:
-            - self.visited: A set of visited nodes.
-            - self.attacker: The attacker instance.
-        """
-        if node.type == 'and':
-            # Check traversability.
-            if not maltoolbox.attackgraph.query.is_node_traversable_by_attacker(node, self.attacker):
-                return False
-            # Check if all parent steps has been traversed
-            for parent in node.parents:
-                if parent not in self.visited:
-                    return False 
-        return True
     
     def upload_graph_to_neo4j(self, neo4j_graph_connection, add_horizon=False):
         """
@@ -269,7 +237,6 @@ class AttackSimulation:
             # The current_node is the node in open_set having the lowest f_score value.
             current_score, current_node = heapq.heappop(open_set)
             self.visited.add(current_node)
-
             # Stop condition.
             if current_node == self.target_node:
                 self.visited = set()
@@ -281,8 +248,9 @@ class AttackSimulation:
                 # Try the neighbor node with a lower g_score than the previous node.
                 if tentative_g_score < g_score[neighbor.id]:
                     # If it is an 'or' node or if the and all parents to the 'and' node has been visited,
-                    # continue to try this path.
-                    if self.check_move(neighbor):
+                    # continue to try this path.                       
+                    if maltoolbox.attackgraph.query.is_node_traversable_by_attacker(neighbor, self.attacker):
+                        self.attacker.reached_attack_steps.append(neighbor)
                         came_from[neighbor.id].append(current_node)
                         g_score[neighbor.id] = tentative_g_score
                         f_score[neighbor.id] = tentative_g_score + h_score[neighbor.id] # TODO calculate the h_score for all nodes
@@ -338,17 +306,21 @@ class AttackSimulation:
         print(old_current)
         return cost, old_current
 
-    def get_costs(self):
+    def get_costs(self, default_cost = 1):
         """
-        # TODO Currently there is no cost attribute, so this function is used instead. 
+        TODO Currently there is no cost attribute, so this function is used instead as a temporary fix. 
+        Later the file cost_from_ttc.py can perhaps be used to convert ttc to cost.
+
         Assigns a constant cost for compromising the attack step for all nodes in the graph.
+         Parameters:
+        - default_cost: A default cost that is assigned to all attack steps.
 
         Return:
         A dictionary containing all attack step ids as keys, and the constant cost as values.
         """
         dict = {}
         for node in self.attackgraph_instance.nodes:
-            dict[node.id] = 1
+            dict[node.id] = default_cost
         return dict
 
 
@@ -385,10 +357,11 @@ class AttackSimulation:
             next_node = random.choice(list(self.horizon))
             print(next_node)
             # Attack unvisited node in the horizon.
-            if self.check_move(self.attackgraph_dictionary[next_node]):
+            if maltoolbox.attackgraph.query.is_node_traversable_by_attacker(self.attackgraph_dictionary[next_node], self.attacker):
                 if self.attacker_cost_budget != None and cost+costs[next_node] > self.attacker_cost_budget:
                     break
                 self.visited.add(next_node)
+                self.attacker.reached_attack_steps.append(next_node)
                 self.path[came_from[next_node]].append(self.attackgraph_dictionary[next_node])
                 cost += costs[next_node]
                 if next_node in unreachable_horizon_nodes:
