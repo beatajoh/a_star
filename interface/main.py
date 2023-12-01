@@ -1,6 +1,9 @@
 from py2neo import Graph
 import maltoolbox.attackgraph.attackgraph
 import maltoolbox.ingestors.neo4j
+import maltoolbox.model.model
+import maltoolbox.language.specification
+import maltoolbox.language.classes_factory
 
 # Custom files.
 from attack_simulation import AttackSimulation
@@ -10,26 +13,33 @@ import help_functions
 
 def main():
     # Connect to Neo4j graph database.
+    print("Starting to connect to Neo4j database.")
     neo4j_graph_connection = Graph(constants.URI, auth=(constants.USERNAME, constants.PASSWORD))
-    print("Connected to Neo4j database.")
+    print("Successful connection to Neo4j database.")
 
-    # Create mal-toolbox AttackGraph instance.
+    # Create the language specification and LanguageClassesFactory instance.
+    lang_spec = maltoolbox.language.specification.load_language_specification_from_mar(constants.MAR_ARCHIVE)
+    lang_classes_factory = maltoolbox.language.classes_factory.LanguageClassesFactory(lang_spec)
+    lang_classes_factory.create_classes()
+
+    # Create mal-toolbox Model instance.
+    model = maltoolbox.model.model.Model("model", lang_spec, lang_classes_factory)
+    model.load_from_file(constants.MODEL_FILE)
+
+    # Generate mal-toolbox AttackGraph.
     attackgraph = maltoolbox.attackgraph.attackgraph.AttackGraph()
-
-    # File of the attack graph model.
-    file = constants.FILE
-
-    # Load the attack graph.
-    attackgraph.load_from_file(file)
+    attackgraph.generate_graph(lang_spec, model)
 
     # Upload the attack graph to Neo4j.
     print("Starting uploading the attackgraph to Neo4j.")
     maltoolbox.ingestors.neo4j.ingest_attack_graph(attackgraph, constants.URI, constants.USERNAME, constants.PASSWORD, constants.DBNAME, delete=True)
     print("The attackgraph is uploaded to Neo4j.")
-    
-    # TODO Select one attacker.
+
+    # Select one attacker.
+    attackgraph.attach_attackers(model)
     attacker = attackgraph.attackers[0]
-    print("Attacker entry point (attack step id) is:", attacker.node.id, end="\n\n") 
+    attacker_entry_point = attacker.node.id
+    print("Attacker entry point (attack step id) is:", attacker_entry_point) 
 
     # Create AttackSimulation instance.
     attack_simulation = AttackSimulation(attackgraph, attacker)    
@@ -86,8 +96,8 @@ def main():
 
         else: 
             break
-    #except:
-    #    print("try again")
+
+
 
 if __name__=='__main__':
     main()
