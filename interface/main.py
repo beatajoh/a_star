@@ -1,4 +1,5 @@
 from py2neo import Graph
+import os
 import maltoolbox.attackgraph.attackgraph
 import maltoolbox.ingestors.neo4j
 import maltoolbox.model.model
@@ -34,6 +35,14 @@ def main():
     print("Starting uploading the attackgraph to Neo4j.")
     maltoolbox.ingestors.neo4j.ingest_attack_graph(attackgraph, constants.URI, constants.USERNAME, constants.PASSWORD, constants.DBNAME, delete=True)
     print("The attackgraph is uploaded to Neo4j.")
+
+    # Calculate new cost if the output file exists or is empty
+    # TODO draw samples from ttc instead.
+    if not os.path.exists(constants.COST_FILE) or os.stat(constants.COST_FILE).st_size == 0:
+        help_functions.calculate_costs_and_save_as_json(attackgraph.nodes, constants.COST_FILE)
+        print(f"Costs saved to {constants.COST_FILE}")
+    else:
+        print(f"{constants.COST_FILE} already contains data. Skipping calculation.")
 
     # Select one attacker.
     attackgraph.attach_attackers(model)
