@@ -15,16 +15,20 @@ ATTACK_OPTIONS = {
 
 # Used in AttackSimulation.step_by_step_attack_simulation().
 STEP_BY_STEP_ATTACK_COMMANDS = {
-    "1": "horizon",
+    "1": " view horizon",
     "2": "action",
     "3": "exit"
     }
 
-# Path to the tmp directory.
-FILE = "tmp/attackgraph.json"
+# Neo4j database information.
+URI = "bolt://localhost:7687"
+USERNAME = "neo4j"
+PASSWORD = "mgg12345!"
+DBNAME = "neo4j"
 
-# File to store result attack graphs.
-RESULT_FILE = "result/result_attackgraph.json"
+# Path to the tmp directory provided by maltoolbox.
+MODEL_FILE = "model.json"
 
-MAR_ARCHIVE = "assets/org.mal-lang.coreLang-0.3.0.mar"
+COST_FILE = "costs.json"
 
+MAR_ARCHIVE = "assets/org.mal-lang.coreLang-1.0.0.mar"

@@ -141,7 +141,7 @@ def main():
             attack_simulation.upload_graph_to_neo4j(neo4j_graph_connection, add_horizon=False)
 
         elif user_input == attack_options[3]:
-            # Traverse attack graph with breadth first search to retrieve all "traversable" steps within the attacker
+            # Traverse attack graph with breadth first search to retrieve the subgraph within the attacker
             # cost budget.
             print(f"{constants.HEADER_COLOR}{constants.ATTACK_OPTIONS[user_input]}{constants.STANDARD}")
             attacker_cost_budget = input("Enter the attacker cost budget as integer (or press enter): ")
