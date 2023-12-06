@@ -27,8 +27,8 @@ PASSWORD = "mgg12345!"
 DBNAME = "neo4j"
 
 # Path to the tmp directory provided by maltoolbox.
-MODEL_FILE = "model.json"
+MODEL_FILE = "assets/model.json"
 
-COST_FILE = "costs.json"
+COST_FILE = "assets/costs.json"
 
 MAR_ARCHIVE = "assets/org.mal-lang.coreLang-1.0.0.mar"
