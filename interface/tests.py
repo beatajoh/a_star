@@ -1,52 +1,60 @@
 import unittest
-import maltoolbox.attackgraph.attackgraph
 from py2neo import Graph
+import maltoolbox.attackgraph.attackgraph
 import maltoolbox.ingestors.neo4j
+import maltoolbox.model.model
+import maltoolbox.language.specification
+import maltoolbox.language.classes_factory
+import maltoolbox.attackgraph.attacker
 
 # Custom files.
 import constants
 from attack_simulation import AttackSimulation
-
+import help_functions
 
 class TestAttackSimulation(unittest.TestCase):
 
     def __init__(self, *args, **kwargs):
         super(TestAttackSimulation, self).__init__(*args, **kwargs)
 
-        # Connect to Neo4j graph database.
-        print("Connect to Neo4j graph database.")
-        self.graph = Graph(constants.URI, auth=(constants.USERNAME, constants.PASSWORD))
+        self.set_up()
+        self.neo4j_graph_connection = Graph(constants.URI, auth=(constants.USERNAME, constants.PASSWORD))
 
-        # Create new mal-toolbox AttackGraph instance.
-        self.attackgraph = maltoolbox.attackgraph.attackgraph.AttackGraph()
+        # Upload the attack graph to Neo4j.
+        #print("Starting to upload the attackgraph to Neo4j.")
+        #maltoolbox.ingestors.neo4j.ingest_attack_graph(self.attackgraph, constants.URI, constants.USERNAME, constants.PASSWORD, constants.DBNAME, delete=True)
+        #print("The attackgraph is uploaded to Neo4j.")
+
+        # Test case 1.
+        # Entry point: Application:1:attemptReverseReach
+        self.asset_id_1 = 1
+        self.attack_steps_1 = ["attemptReverseReach"]
+        self.target_1 = "Application:1:successfulReverseReach"
+
+
+        # Test case 2. 
+        # Entry point: 
+        self.asset_id_2 = 1
+        self.attack_steps_2 = ["Application:1:modify"]
+        self.target_2 = "Application:1:attemptUseVulnerability"
+
+    
+        """
+        # Test 1 todo
+    
+        #MATCH path = (sourceNode {full_name: 'Attacker:12:firstSteps'})-[*]->(targetNode {full_name: 'User:11:oneCredentialCompromised'}) RETURN path
         
-        # Load the attack graph.
-        print("Load attackgraph.")
-        self.attackgraph.load_from_file(constants.TEST_FILE)
-
-        # Set up attackers.
-        self.attacker_1 = self.attackgraph.attackers[0]
-        self.attacker_2 = self.attackgraph.attackers[1]
-
-        print(self.attackgraph.nodes[0].is_necessary and False)
-
-        # Test 1
-        """
-        MATCH path = (sourceNode {full_name: 'Attacker:12:firstSteps'})-[*]->(targetNode {full_name: 'User:11:oneCredentialCompromised'}) RETURN path
-        """
-        self.target_1 = "User:11:oneCredentialCompromised"
 
         # Test 2
         self.start_node_2 = ""
         self.target_2 = ""
 
-        # Test 3
+        # Test 3 todo
         self.target_3 = "Credentials:5:attemptExtractFromReplica"
 
         # Test 4 
-        """
-        MATCH path = (n {full_name: "Credentials:8:credentialTheft"})-[*..4]->(m) RETURN path
-        """
+        #MATCH path = (n {full_name: "Credentials:8:credentialTheft"})-[*..4]->(m) RETURN path
+    
         self.start_node_4 = "Credentials:8:credentialTheft"
         self.target_4 = "Credentials:8:propagateOneCredentialCompromised"
         self.shortest_path_4 = [
@@ -55,48 +63,81 @@ class TestAttackSimulation(unittest.TestCase):
             "Credentials:8:attemptPropagateOneCredentialCompromised",
             self.target_4
         ]
-
+    """
     def set_up(self):
-        # Upload the attack graph to Neo4j.
-        print("Starting uploading the attackgraph to Neo4j.")
-        maltoolbox.ingestors.neo4j.ingest_attack_graph(self.attackgraph, constants.URI, constants.USERNAME, constants.PASSWORD, constants.DBNAME, delete=True)
-        print("The attackgraph is uploaded to Neo4j.")
+        """
+        Set up attackgraph.
+        """
+        # Create the language specification and LanguageClassesFactory instance.
+        self.lang_spec = maltoolbox.language.specification.load_language_specification_from_mar(constants.MAR_ARCHIVE)
+        self.lang_classes_factory = maltoolbox.language.classes_factory.LanguageClassesFactory(self.lang_spec)
+        self.lang_classes_factory.create_classes()
 
-         # Create new mal-toolbox AttackGraph instance.
+        # Create mal-toolbox Model instance.
+        self.model = maltoolbox.model.model.Model("test model", self.lang_spec, self.lang_classes_factory)
+        self.model.load_from_file(constants.MODEL_FILE)
+
+        # Generate mal-toolbox AttackGraph.
         self.attackgraph = maltoolbox.attackgraph.attackgraph.AttackGraph()
+        self.attackgraph.generate_graph(self.lang_spec, self.model)
 
-        # Load the attack graph.
-        print("Load attackgraph.")
-        self.attackgraph.load_from_file(constants.TEST_FILE)
+        # Build the Attacker for test.
+        self.attacker_id = 1
+        self.attacker_name = "test attacker"
+        self.attacker = maltoolbox.model.model.Attacker()
+        self.model.attackers = []
+        self.model.add_attacker(self.attacker, self.attacker_id)
 
-        # Set up attackers.
-        self.attacker_1 = self.attackgraph.attackers[0]
-        self.attacker_2 = self.attackgraph.attackers[1]
+        # Load the costs from file.
+        self.cost = help_functions.load_costs_from_file()
 
-    '''
-    def test_dijkstra_empty_instance(self):
+    def test_dijkstra_with_unreachable_and_node(self):
+        # Attack chain is:
+        # Attacker:1:firstSteps -9-> Application:1:attemptReverseReach (or) -1-> Application:1:successfulReverseReach (unreachable and)
+        
         # Arrange
-        attack_simulation = AttackSimulation(None, self.attacker_1)
-        attack_simulation.set_target_node(self.target_1)
-
-        # Act
-        cost = attack_simulation.dijkstra()
-
-        # Assert
-        self.assertEqual(cost, 0)
-    '''
-    
-    def test_dijkstra_with_empty_target(self):
-        print(self.attacker_1.node.id)
-        # Arrange
-        attack_simulation = AttackSimulation(self.attackgraph, self.attacker_1)
+        self.set_up()
+        self.model.attackers[0].entry_points = []
+        asset = self.model.get_asset_by_id(self.asset_id_1)
+        self.model.attackers[0].entry_points.append((asset, self.attack_steps_1))
+        self.attackgraph.attach_attackers(self.model)
+        attacker = self.attackgraph.attackers[0]
+       
+        attack_simulation = AttackSimulation(self.attackgraph, attacker)
 
         # Act 
+        attack_simulation.set_target_node(self.target_1)
         cost = attack_simulation.dijkstra()
 
         # Assert
-        self.assertEqual(cost, None)
+        # TODO upload path.
+        correct_cost = self.cost["Application:1:attemptReverseReach"]
+        self.assertEqual(correct_cost, cost)
+        
+    def test_dijkstra_with_path_w_only_or_nodes(self):
+        # Attack chain is:
+        # Attacker:1:firstSteps -3-> Application:1:modify -10-> Application:1:fullAccess -7-> Application:1:specificAccess -4-> Application:1:attemptUseVulnerability 
+        # Arrange
+        self.set_up()
+        print("self.model.attackers[0]", type(self.model.attackers[0].entry_points))
+        self.model.attackers[0].entry_points = []
+        asset = self.model.get_asset_by_id(self.asset_id_2)
+        self.model.attackers[0].entry_points.append((asset, self.attack_steps_2))
+        self.attackgraph.attach_attackers(self.model)
+        attacker = self.attackgraph.attackers[0]
+       
+        attack_simulation = AttackSimulation(self.attackgraph, attacker)
 
+        # Act 
+        attack_simulation.set_target_node(self.target_2)
+        cost = attack_simulation.dijkstra()
+       
+        # Assert
+        # TODO upload path.
+        correct_cost = 24
+        self.assertEqual(correct_cost, cost)
+    
+    """
     def test_dijkstra_with_unreachable_target(self):
         print(self.attacker_1.node.id)
 
@@ -189,7 +230,7 @@ class TestAttackSimulation(unittest.TestCase):
     #def test_random(self):
 
     # def test_bfs(self):
-
+"""
 if __name__ == '__main__':
     unittest.main()
 
@@ -255,4 +296,18 @@ class TestDijkstra(unittest.TestCase):
         # For example, check if the result contains the expected nodes
         expected_result = [1, 2, 3, 4]
         self.assertEqual(result, expected_result)
+'''
+
+
+'''
+def test_dijkstra_empty_instance(self):
+    # Arrange
+    attack_simulation = AttackSimulation(None, self.attacker_1)
+    attack_simulation.set_target_node(self.target_1)
+
+    # Act
+    cost = attack_simulation.dijkstra()
+
+    # Assert
+    self.assertEqual(cost, 0)
 '''
