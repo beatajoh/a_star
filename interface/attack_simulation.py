@@ -106,7 +106,7 @@ class AttackSimulation:
         
         # Begin step by step attack simulation.
         while True:
-            print("\n")
+            print(f"{constants.ATTACKER_COLOR}options{constants.STANDARD}")
             help_functions.print_dictionary(constants.STEP_BY_STEP_ATTACK_COMMANDS)
             command = input("Choose: ")
 
@@ -116,6 +116,8 @@ class AttackSimulation:
 
             # Action.   
             elif command == '2':
+
+                
                 # Choose next node to visit.       
                 node_options = self.build_horizon_dict()
                 self.print_horizon()
@@ -128,17 +130,19 @@ class AttackSimulation:
                     self.visited.add(attacked_node_id)
                     self.horizon.remove(attacked_node_id)
                     self.add_children_to_horizon(attacked_node)
-                    self.attacker.reached_attack_steps.append(attacked_node_id)
-                    
+
+                    # Update the Attacker status.
+                    self.attacker.reached_attack_steps.append(attacked_node)
+            
                     # Update the AttackGraphNode status.
                     attacked_node.compromised_by.append(self.attacker)
 
                     # Upload attacker path and horizon.
                     self.upload_graph_to_neo4j(neo4j_graph_connection, add_horizon=True)
-                    print("Attack step was compromised")
+                    print("Attack step was compromised.")
                 else:
-                    print("The required dependency steps for", attacked_node_id, "has not been traversed by the attacker")
-                    print("The node was not added to the path")
+                    print("The required dependency steps for", attacked_node_id, "has not been traversed by the attacker.")
+                    print("The node was not added to the path.")
                 # Print horizon nodes.
                 self.print_horizon()
             elif command == '3':
@@ -168,7 +172,6 @@ class AttackSimulation:
             neo4j_node = Node(
                 id = node.id,
                 type = node.type,
-                asset = node.asset,
                 name = node.name,
                 horizon = False
             )
@@ -182,7 +185,6 @@ class AttackSimulation:
                 neo4j_node = Node(
                         id = node.id,
                         type = node.type,
-                        asset = node.asset,
                         name = node.name,
                         horizon = True
                     )
@@ -260,7 +262,10 @@ class AttackSimulation:
                     elif neighbor.type == 'and':
                         costs[neighbor.id] = tentative_g_score
                         came_from[neighbor.id].append(current_node)
-        return 
+
+        self.visited = set()
+        return self.reconstruct_path(came_from, current_node, costs_copy)[0]
+        #return 
 
     def reconstruct_path(self, came_from, current, costs):
         """
@@ -303,25 +308,18 @@ class AttackSimulation:
                     if old_current not in self.path[current]:
                         self.path[current].append(self.attackgraph_dictionary[old_current])
             self.visited.add(self.start_node)
-        print(old_current)
         return cost, old_current
 
-    def get_costs(self, default_cost = 1):
+    def get_costs(self):
         """
         TODO Currently there is no cost attribute, so this function is used instead as a temporary fix. 
         Later the file cost_from_ttc.py can perhaps be used to convert ttc to cost.
 
-        Assigns a constant cost for compromising the attack step for all nodes in the graph.
-         Parameters:
-        - default_cost: A default cost that is assigned to all attack steps.
-
         Return:
-        A dictionary containing all attack step ids as keys, and the constant cost as values.
+        A dictionary containing all attack step ids as keys, and the cost as values.
         """
-        dict = {}
-        for node in self.attackgraph_instance.nodes:
-            dict[node.id] = default_cost
-        return dict
+        return help_functions.load_costs_from_file()
+
 
 
     def random_path(self):
