@@ -31,7 +31,7 @@ the password matches as the username and specific database
 name are set to default values.
 
 #### Usage
-Open the terminal, navigate to the mgg-poject directory "simulations", and run:
+Open the terminal, navigate to the mgg-poject directory "interface", and run:
 ````
 python main.py
 ````
