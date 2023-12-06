@@ -389,7 +389,8 @@ class AttackSimulation:
 
         This method explores the attack graph starting from the specified start node,
         considering a cost budget for the attacker. It calculates the total cost of the
-        paths within the budget and returns the final cost.
+        paths within the budget and returns the final cost. Note that this method does not
+        the type of attack steps.
 
         Returns:
         - cost: The total cost of the paths explored within the attacker's cost budget.
@@ -401,7 +402,7 @@ class AttackSimulation:
         while queue:
             node, cost = queue.popleft()
             # Explore the horizon of the current node.
-            for link in self.attackgraph_dictionary[node].children: # TODO Assuming the horizon is the direct children attack steps.
+            for link in self.attackgraph_dictionary[node].children:
                 next_cost = cost + costs[link.id]
                 if link.id not in self.visited and next_cost <= self.attacker_cost_budget:
                     self.visited.add(link.id)
