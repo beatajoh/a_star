@@ -10,25 +10,24 @@ import random
 
 class AttackSimulation:
     
-    def __init__(self, attackgraph_instance, attackgraph_dictionary, attacker):
+    def __init__(self, attackgraph_instance, attacker):
         """
         Initialize the AttackSimulation instance.
 
         Parameters:
         - attackgraph_instance: An instance of the AttackGraph class.
-        - attackgraph_dictionary: A dictionary representing the attack graph.
         - attacker: An instance of the Attacker class.
         """
         self.attackgraph_instance = attackgraph_instance
-        self.attackgraph_dictionary = attackgraph_dictionary
+        self.attackgraph_dictionary = {node.id: node for node in attackgraph_instance.nodes}
         self.attacker = attacker
-        self.path = {key: [] for key in attackgraph_dictionary.keys()}
+        self.path = {key: [] for key in self.attackgraph_dictionary.keys()}
         self.horizon = set()
         self.visited = set()
         self.start_node = attacker.node.id
         self.target_node = None
         self.attacker_cost_budget = None
-
+    
     def set_target_node(self, target_node):
         """
         Set the target node for the simulation.
@@ -79,7 +78,8 @@ class AttackSimulation:
         """
         dict = {}
         for i, node_id in enumerate(self.horizon):
-            dict[i+1] = node_id + self.attackgraph_dictionary[node_id].type
+            node = self.attackgraph_dictionary[node_id]
+            dict[i+1] = [node_id, node.type, str(maltoolbox.attackgraph.query.is_node_traversable_by_attacker(node, self.attacker))]
         return dict
 
     def step_by_step_attack_simulation(self, neo4j_graph_connection):
@@ -106,6 +106,7 @@ class AttackSimulation:
         
         # Begin step by step attack simulation.
         while True:
+            print(f"{constants.ATTACKER_COLOR}options{constants.STANDARD}")
             help_functions.print_dictionary(constants.STEP_BY_STEP_ATTACK_COMMANDS)
             command = input("Choose: ")
 
@@ -119,63 +120,32 @@ class AttackSimulation:
                 node_options = self.build_horizon_dict()
                 self.print_horizon()
                 option = input("Choose a node (id) to attack: ")
-                attacked_node_id = node_options[int(option)]
+                attacked_node_id = node_options[int(option)][0] # Select the node id at index 0.
                 attacked_node = self.attackgraph_dictionary[attacked_node_id]
 
                 # Update horizon if the node can be visited.
-                if attacked_node_id in self.horizon and self.check_move(attacked_node):
+                if attacked_node_id in self.horizon and maltoolbox.attackgraph.query.is_node_traversable_by_attacker(attacked_node, self.attacker):
                     self.visited.add(attacked_node_id)
                     self.horizon.remove(attacked_node_id)
                     self.add_children_to_horizon(attacked_node)
-                    
+
+                    # Update the Attacker status.
+                    self.attacker.reached_attack_steps.append(attacked_node)
+            
                     # Update the AttackGraphNode status.
                     attacked_node.compromised_by.append(self.attacker)
 
                     # Upload attacker path and horizon.
                     self.upload_graph_to_neo4j(neo4j_graph_connection, add_horizon=True)
-                    print("Attack step was compromised")
+                    print("Attack step was compromised.")
                 else:
-                    print("The required dependency steps for", attacked_node_id, "has not been traversed by the attacker")
-                    print("The node was not added to the path")
+                    print("The required dependency steps for", attacked_node_id, "has not been traversed by the attacker.")
+                    print("The node was not added to the path.")
                 # Print horizon nodes.
                 self.print_horizon()
             elif command == '3':
-                # Return
+                # Return.
                 return
-            
-    def check_move(self, node):
-        """
-        Check if an attack step is traversable.
-
-        This method evaluates the traversability of an attack step, considering both the
-        node type ('or' or 'and') and the reachability of the node. For 'or' nodes,
-        it returns True. For 'and' nodes, it checks if the node is reachable by the
-        attacker and if all dependency steps have been visited, returning True in that
-        case. Otherwise, it returns False.
-
-        Parameters:
-        - node: The AttackGraphNode instance to be checked for traversability.
-
-        Returns:
-        - True if the node is an 'or' node.
-        - True if the node is an 'and' node which is reachable and all parent attack steps
-        have been visited.
-        - False otherwise.
-
-        Notes:
-        - The function assumes the existence of the following instance variables:
-            - self.visited: A set of visited nodes.
-            - self.attacker: The attacker instance.
-        """
-        if node.type == 'and':
-            # Check traversability.
-            if not maltoolbox.attackgraph.query.is_node_traversable_by_attacker(node, self.attacker):
-                return False
-            # Check if all parent steps has been traversed
-            for parent in node.parents:
-                if parent not in self.visited:
-                    return False 
-        return True
     
     def upload_graph_to_neo4j(self, neo4j_graph_connection, add_horizon=False):
         """
@@ -188,7 +158,8 @@ class AttackSimulation:
         Notes:
         - The function assumes the existence of the following instance variables:
             - self.visited: A set of visited nodes.
-            - self.self.attackgraph_dictionary: A dictionary representing the attack graph.
+            - self.attackgraph_dictionary: A dictionary representing the attack graph.
+            - self.path: A dictionary containing the path.
         """
         
         nodes = {}
@@ -200,7 +171,6 @@ class AttackSimulation:
             neo4j_node = Node(
                 id = node.id,
                 type = node.type,
-                asset = node.asset,
                 name = node.name,
                 horizon = False
             )
@@ -214,7 +184,6 @@ class AttackSimulation:
                 neo4j_node = Node(
                         id = node.id,
                         type = node.type,
-                        asset = node.asset,
                         name = node.name,
                         horizon = True
                     )
@@ -269,7 +238,6 @@ class AttackSimulation:
             # The current_node is the node in open_set having the lowest f_score value.
             current_score, current_node = heapq.heappop(open_set)
             self.visited.add(current_node)
-
             # Stop condition.
             if current_node == self.target_node:
                 self.visited = set()
@@ -281,8 +249,9 @@ class AttackSimulation:
                 # Try the neighbor node with a lower g_score than the previous node.
                 if tentative_g_score < g_score[neighbor.id]:
                     # If it is an 'or' node or if the and all parents to the 'and' node has been visited,
-                    # continue to try this path.
-                    if self.check_move(neighbor):
+                    # continue to try this path.                       
+                    if maltoolbox.attackgraph.query.is_node_traversable_by_attacker(neighbor, self.attacker):
+                        self.attacker.reached_attack_steps.append(neighbor)
                         came_from[neighbor.id].append(current_node)
                         g_score[neighbor.id] = tentative_g_score
                         f_score[neighbor.id] = tentative_g_score + h_score[neighbor.id] # TODO calculate the h_score for all nodes
@@ -292,7 +261,10 @@ class AttackSimulation:
                     elif neighbor.type == 'and':
                         costs[neighbor.id] = tentative_g_score
                         came_from[neighbor.id].append(current_node)
-        return 
+
+        self.visited = set()
+        return self.reconstruct_path(came_from, current_node, costs_copy)[0]
+        #return 
 
     def reconstruct_path(self, came_from, current, costs):
         """
@@ -321,7 +293,7 @@ class AttackSimulation:
                 # Condition for 'and' node.       
                 if len(current) > 1:
                     for node in current:
-                        path_cost, _, _= self.reconstruct_path(came_from, node, costs)
+                        path_cost, _= self.reconstruct_path(came_from, node, costs)
                         cost += path_cost + costs[old_current]
                         self.path[node].append(self.attackgraph_dictionary[old_current])
                         self.visited.add(old_current)
@@ -335,22 +307,17 @@ class AttackSimulation:
                     if old_current not in self.path[current]:
                         self.path[current].append(self.attackgraph_dictionary[old_current])
             self.visited.add(self.start_node)
-        print(old_current)
         return cost, old_current
 
     def get_costs(self):
         """
-        # TODO Currently there is no cost attribute, so this function is used instead. 
-        Assigns a constant cost for compromising the attack step for all nodes in the graph.
+        TODO Currently there is no cost attribute, so this function is used instead as a temporary fix. 
+        Later the file cost_from_ttc.py can perhaps be used to convert ttc to cost.
 
         Return:
-        A dictionary containing all attack step ids as keys, and the constant cost as values.
+        A dictionary containing all attack step ids as keys, and the cost as values.
         """
-        dict = {}
-        for node in self.attackgraph_instance.nodes:
-            dict[node.id] = 2
-        return dict
-
+        return help_functions.load_costs_from_file()
 
     def random_path(self):
         """
@@ -363,9 +330,8 @@ class AttackSimulation:
         Returns:
         - cost: The total cost of the random path.
         """
-        node_ids = list(self.attackgraph_dictionary.keys())
         self.visited.add(self.start_node)
-        came_from = dict.fromkeys(node_ids, '')
+        came_from = {key: [] for key in self.attackgraph_dictionary.keys()}#dict.fromkeys(node_ids, '')
         target_found = False
         unreachable_horizon_nodes = set()
 
@@ -373,38 +339,45 @@ class AttackSimulation:
         # TODO Assuming the horizon is the direct children attack steps.
         for node in self.attackgraph_dictionary[self.start_node].children:
             self.horizon.add(node.id)
-            came_from[node.id] = self.start_node
+            came_from[node.id].append(self.start_node)
 
-        costs = self.get_costs() # TODO Replace with cost attribute.
+        costs = self.get_costs()
         cost = 0
 
         if self.target_node == None and self.attacker_cost_budget == None:
             return cost
         
         while self.horizon and unreachable_horizon_nodes != self.horizon:
-            next_node = random.choice(list(self.horizon))
-            print(next_node)
+            next_node_id = random.choice(list(self.horizon))
+            next_node = self.attackgraph_dictionary[next_node_id]
+
             # Attack unvisited node in the horizon.
-            if self.check_move(self.attackgraph_dictionary[next_node]):
-                if self.attacker_cost_budget != None and cost+costs[next_node] > self.attacker_cost_budget:
+            if maltoolbox.attackgraph.query.is_node_traversable_by_attacker(self.attackgraph_dictionary[next_node.id], self.attacker):
+                if self.attacker_cost_budget != None and cost+costs[next_node.id] > self.attacker_cost_budget:
                     break
-                self.visited.add(next_node)
-                self.path[came_from[next_node]].append(self.attackgraph_dictionary[next_node])
-                cost += costs[next_node]
-                if next_node in unreachable_horizon_nodes:
-                    unreachable_horizon_nodes.remove(node)
+                
+                # Update status of the path, attacker and horizon.
+                self.visited.add(next_node.id)
+                self.attacker.reached_attack_steps.append(next_node)
+                for parent in came_from[next_node.id]:
+                    self.path[parent].append(self.attackgraph_dictionary[next_node.id])
+                cost += costs[next_node.id]
+                if next_node.id in unreachable_horizon_nodes:
+                    unreachable_horizon_nodes.remove(next_node.id)
+
                 # Update the horizon.
-                self.horizon.remove(next_node)
-                for node in self.attackgraph_dictionary[next_node].children:
+                self.horizon.remove(next_node.id)
+                for node in next_node.children:
                     self.horizon.add(node.id)
-                    came_from[node.id] = next_node
+                    came_from[node.id].append(next_node.id)
+
                 # Check if the target node was selected (if the target node was specified).
-                if self.target_node != None and node == self.target_node:
+                if self.target_node != None and next_node.id == self.target_node:
                     target_found = True
-                    print("The target,",self.target_node,"was found!")
+                    print("The target,", self.target_node, "was found!")
                     break
             else:
-                unreachable_horizon_nodes.add(next_node)
+                unreachable_horizon_nodes.add(next_node.id)
         # Check if the target never was selected in the path
         if self.target_node != None and target_found == False:
             print("The target,", self.target_node, "was not found!")
@@ -416,7 +389,8 @@ class AttackSimulation:
 
         This method explores the attack graph starting from the specified start node,
         considering a cost budget for the attacker. It calculates the total cost of the
-        paths within the budget and returns the final cost.
+        paths within the budget and returns the final cost. Note that this method does not
+        the type of attack steps.
 
         Returns:
         - cost: The total cost of the paths explored within the attacker's cost budget.
@@ -428,10 +402,10 @@ class AttackSimulation:
         while queue:
             node, cost = queue.popleft()
             # Explore the horizon of the current node.
-            for link in self.attackgraph_dictionary[node].children: # TODO Assuming the horizon is the direct children attack steps.
-                cost = cost + costs[link.id]
-                if link.id not in self.visited and cost <= self.attacker_cost_budget:
+            for link in self.attackgraph_dictionary[node].children:
+                next_cost = cost + costs[link.id]
+                if link.id not in self.visited and next_cost <= self.attacker_cost_budget:
                     self.visited.add(link.id)
-                    queue.append((link.id, cost))
+                    queue.append((link.id, next_cost))
                     self.path[node].append(link)
         return cost
