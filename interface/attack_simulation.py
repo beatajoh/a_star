@@ -116,8 +116,6 @@ class AttackSimulation:
 
             # Action.   
             elif command == '2':
-
-                
                 # Choose next node to visit.       
                 node_options = self.build_horizon_dict()
                 self.print_horizon()
@@ -146,7 +144,7 @@ class AttackSimulation:
                 # Print horizon nodes.
                 self.print_horizon()
             elif command == '3':
-                # Return
+                # Return.
                 return
     
     def upload_graph_to_neo4j(self, neo4j_graph_connection, add_horizon=False):
@@ -160,7 +158,8 @@ class AttackSimulation:
         Notes:
         - The function assumes the existence of the following instance variables:
             - self.visited: A set of visited nodes.
-            - self.self.attackgraph_dictionary: A dictionary representing the attack graph.
+            - self.attackgraph_dictionary: A dictionary representing the attack graph.
+            - self.path: A dictionary containing the path.
         """
         
         nodes = {}
@@ -294,7 +293,7 @@ class AttackSimulation:
                 # Condition for 'and' node.       
                 if len(current) > 1:
                     for node in current:
-                        path_cost, _, _= self.reconstruct_path(came_from, node, costs)
+                        path_cost, _= self.reconstruct_path(came_from, node, costs)
                         cost += path_cost + costs[old_current]
                         self.path[node].append(self.attackgraph_dictionary[old_current])
                         self.visited.add(old_current)
@@ -320,8 +319,6 @@ class AttackSimulation:
         """
         return help_functions.load_costs_from_file()
 
-
-
     def random_path(self):
         """
         Generate a random attack path in the attack graph, considering attacker cost budget and/or target node.
@@ -333,9 +330,8 @@ class AttackSimulation:
         Returns:
         - cost: The total cost of the random path.
         """
-        node_ids = list(self.attackgraph_dictionary.keys())
         self.visited.add(self.start_node)
-        came_from = dict.fromkeys(node_ids, '')
+        came_from = {key: [] for key in self.attackgraph_dictionary.keys()}#dict.fromkeys(node_ids, '')
         target_found = False
         unreachable_horizon_nodes = set()
 
@@ -343,39 +339,45 @@ class AttackSimulation:
         # TODO Assuming the horizon is the direct children attack steps.
         for node in self.attackgraph_dictionary[self.start_node].children:
             self.horizon.add(node.id)
-            came_from[node.id] = self.start_node
+            came_from[node.id].append(self.start_node)
 
-        costs = self.get_costs() # TODO Replace with cost attribute.
+        costs = self.get_costs()
         cost = 0
 
         if self.target_node == None and self.attacker_cost_budget == None:
             return cost
         
         while self.horizon and unreachable_horizon_nodes != self.horizon:
-            next_node = random.choice(list(self.horizon))
-            print(next_node)
+            next_node_id = random.choice(list(self.horizon))
+            next_node = self.attackgraph_dictionary[next_node_id]
+
             # Attack unvisited node in the horizon.
-            if maltoolbox.attackgraph.query.is_node_traversable_by_attacker(self.attackgraph_dictionary[next_node], self.attacker):
-                if self.attacker_cost_budget != None and cost+costs[next_node] > self.attacker_cost_budget:
+            if maltoolbox.attackgraph.query.is_node_traversable_by_attacker(self.attackgraph_dictionary[next_node.id], self.attacker):
+                if self.attacker_cost_budget != None and cost+costs[next_node.id] > self.attacker_cost_budget:
                     break
-                self.visited.add(next_node)
+                
+                # Update status of the path, attacker and horizon.
+                self.visited.add(next_node.id)
                 self.attacker.reached_attack_steps.append(next_node)
-                self.path[came_from[next_node]].append(self.attackgraph_dictionary[next_node])
-                cost += costs[next_node]
-                if next_node in unreachable_horizon_nodes:
-                    unreachable_horizon_nodes.remove(node)
+                for parent in came_from[next_node.id]:
+                    self.path[parent].append(self.attackgraph_dictionary[next_node.id])
+                cost += costs[next_node.id]
+                if next_node.id in unreachable_horizon_nodes:
+                    unreachable_horizon_nodes.remove(next_node.id)
+
                 # Update the horizon.
-                self.horizon.remove(next_node)
-                for node in self.attackgraph_dictionary[next_node].children:
+                self.horizon.remove(next_node.id)
+                for node in next_node.children:
                     self.horizon.add(node.id)
-                    came_from[node.id] = next_node
+                    came_from[node.id].append(next_node.id)
+
                 # Check if the target node was selected (if the target node was specified).
-                if self.target_node != None and node == self.target_node:
+                if self.target_node != None and next_node.id == self.target_node:
                     target_found = True
-                    print("The target,",self.target_node,"was found!")
+                    print("The target,", self.target_node, "was found!")
                     break
             else:
-                unreachable_horizon_nodes.add(next_node)
+                unreachable_horizon_nodes.add(next_node.id)
         # Check if the target never was selected in the path
         if self.target_node != None and target_found == False:
             print("The target,", self.target_node, "was not found!")
