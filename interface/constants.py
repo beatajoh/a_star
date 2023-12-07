@@ -15,7 +15,7 @@ ATTACK_OPTIONS = {
 
 # Used in AttackSimulation.step_by_step_attack_simulation().
 STEP_BY_STEP_ATTACK_COMMANDS = {
-    "1": " view horizon",
+    "1": "view horizon",
     "2": "action",
     "3": "exit"
     }
