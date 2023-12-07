@@ -271,7 +271,7 @@ class AttackSimulation:
         Reconstructs the backwards attack path from the start node to the given node with recursion.
 
         This method is used in the context of a Djikstra's algorithm to reconstruct
-        the optimal path from the start node to the specified node, considering a set
+        the optimal path from the target node to the start node, considering a set
         of costs associated with each node in the path.
 
         Parameters:
@@ -281,7 +281,7 @@ class AttackSimulation:
 
         Returns:
         - cost: The total cost of the reconstructed path.
-        - last_node: The last node in the reconstructed path.
+        - old_current: The last node in the reconstructed path.
         """
         cost = 0
         if current != self.start_node:
@@ -335,7 +335,7 @@ class AttackSimulation:
         target_found = False
         unreachable_horizon_nodes = set()
 
-        # Initialize the attack horizon
+        # Initialize the attack horizon.
         # TODO Assuming the horizon is the direct children attack steps.
         for node in self.attackgraph_dictionary[self.start_node].children:
             self.horizon.add(node.id)
@@ -378,7 +378,7 @@ class AttackSimulation:
                     break
             else:
                 unreachable_horizon_nodes.add(next_node.id)
-        # Check if the target never was selected in the path
+        # Check if the target never was selected in the path.
         if self.target_node != None and target_found == False:
             print("The target,", self.target_node, "was not found!")
         return cost
@@ -389,8 +389,8 @@ class AttackSimulation:
 
         This method explores the attack graph starting from the specified start node,
         considering a cost budget for the attacker. It calculates the total cost of the
-        paths within the budget and returns the final cost. Note that this method does not
-        the type of attack steps.
+        paths within the budget and returns the final cost. Note that this method does not 
+        consider the type of the attack steps.
 
         Returns:
         - cost: The total cost of the paths explored within the attacker's cost budget.
