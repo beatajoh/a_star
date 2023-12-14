@@ -1,7 +1,7 @@
 
 # Colors.
-HEADER_COLOR = '\033[95m'
-ATTACKER_COLOR = '\033[91m'
+PINK = '\033[95m'
+RED = '\033[91m'
 STANDARD = '\033[0m'
 BOLD = '\033[1m'
 
@@ -26,9 +26,6 @@ USERNAME = "neo4j"
 PASSWORD = "mgg12345!"
 DBNAME = "neo4j"
 
-# Path to the tmp directory provided by maltoolbox.
 MODEL_FILE = "assets/model.json"
-
 COST_FILE = "assets/costs.json"
-
 MAR_ARCHIVE = "assets/org.mal-lang.coreLang-1.0.0.mar"

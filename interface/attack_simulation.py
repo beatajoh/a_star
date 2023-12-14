@@ -51,7 +51,7 @@ class AttackSimulation:
         Prints the horizon attack steps and the type in custom format.
         """
         horizon_dict = self.build_horizon_dict()
-        print(f"{constants.ATTACKER_COLOR}Attacker Horizon{constants.STANDARD}")
+        print(f"{constants.RED}Attacker Horizon{constants.STANDARD}")
         help_functions.print_dictionary(horizon_dict)
 
     def add_children_to_horizon(self, node):
@@ -106,7 +106,7 @@ class AttackSimulation:
         
         # Begin step by step attack simulation.
         while True:
-            print(f"{constants.ATTACKER_COLOR}options{constants.STANDARD}")
+            print(f"{constants.RED}options{constants.STANDARD}")
             help_functions.print_dictionary(constants.STEP_BY_STEP_ATTACK_COMMANDS)
             command = input("Choose: ")
 
