@@ -261,10 +261,7 @@ class AttackSimulation:
                     elif neighbor.type == 'and':
                         costs[neighbor.id] = tentative_g_score
                         came_from[neighbor.id].append(current_node)
-
-        self.visited = set()
-        return self.reconstruct_path(came_from, current_node, costs_copy)[0]
-        #return 
+        return 0
 
     def reconstruct_path(self, came_from, current, costs):
         """
@@ -331,8 +328,7 @@ class AttackSimulation:
         - cost: The total cost of the random path.
         """
         self.visited.add(self.start_node)
-        came_from = {key: [] for key in self.attackgraph_dictionary.keys()}#dict.fromkeys(node_ids, '')
-        target_found = False
+        came_from = {key: [] for key in self.attackgraph_dictionary.keys()}
         unreachable_horizon_nodes = set()
 
         # Initialize the attack horizon.
@@ -344,10 +340,10 @@ class AttackSimulation:
         costs = self.get_costs()
         cost = 0
 
-        if self.target_node == None and self.attacker_cost_budget == None:
-            return cost
+        #if self.target_node == None and self.attacker_cost_budget == None:
+        #    return cost
         
-        while self.horizon and unreachable_horizon_nodes != self.horizon:
+        while unreachable_horizon_nodes != self.horizon:
             next_node_id = random.choice(list(self.horizon))
             next_node = self.attackgraph_dictionary[next_node_id]
 
@@ -368,19 +364,15 @@ class AttackSimulation:
                 # Update the horizon.
                 self.horizon.remove(next_node.id)
                 for node in next_node.children:
-                    self.horizon.add(node.id)
-                    came_from[node.id].append(next_node.id)
+                    if node.id not in self.visited:
+                        self.horizon.add(node.id)
+                        came_from[node.id].append(next_node.id)
 
                 # Check if the target node was selected (if the target node was specified).
                 if self.target_node != None and next_node.id == self.target_node:
-                    target_found = True
-                    print("The target,", self.target_node, "was found!")
                     break
             else:
                 unreachable_horizon_nodes.add(next_node.id)
-        # Check if the target never was selected in the path.
-        if self.target_node != None and target_found == False:
-            print("The target,", self.target_node, "was not found!")
         return cost
 
     def bfs(self):
