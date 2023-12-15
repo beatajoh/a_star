@@ -56,6 +56,6 @@ The file *test.py* contains tests for Dijkstra and Random path. Run the test fil
 * Add more node properties and labels to show Neo4j.
     * ...by modifying the upload_graph_to_neo4j function in main.py.
 * Show the result path together with the attack graph and asset graph in Neo4j (because right now the paths are displayed separately)
-* Error handling on user input.
-* Use TTC samles for the cost for attack steps.
+* Error handling on user input and functions.
+* Use TTC samples for the cost for attack steps.
 
