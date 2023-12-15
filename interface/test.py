@@ -5,6 +5,7 @@ import maltoolbox.model.model
 import maltoolbox.language.specification
 import maltoolbox.language.classes_factory
 import maltoolbox.attackgraph.attacker
+import maltoolbox.attackgraph.query
 
 # Custom files.
 import constants
@@ -195,6 +196,9 @@ class TestAttackSimulation(unittest.TestCase):
         # Assert
         self.assertGreater(cost, 0)
         self.assertNotIn(target_attack_step, attack_simulation.visited)
+        for horizon_node in attack_simulation.horizon:
+                if maltoolbox.attackgraph.query.is_node_traversable_by_attacker(attack_simulation.attackgraph_dictionary[horizon_node], attack_simulation.attacker):
+                    self.assertFalse(horizon_node)
 
     def test_random_path_with_infinate_cost_budget_on_reachable_node_containing_and_step(self):
             # Arrange
@@ -215,7 +219,7 @@ class TestAttackSimulation(unittest.TestCase):
             cost = attack_simulation.random_path()
 
             # Assert
-            self.assertGreater(cost, optimal_cost) # Greater than the cost for the shortest path.
+            self.assertGreater(cost, optimal_cost)
             self.assertIn(target_attack_step, attack_simulation.visited)
 
     def test_random_path_with_restricted_cost_budget_on_reachable_target_node(self):
@@ -263,9 +267,8 @@ class TestAttackSimulation(unittest.TestCase):
 
     def test_random_path_with_no_cost_budget_and_no_target_node(self):
                 # Arrange
-                number_of_reachable_attack_steps = 137
                 entry_point_attack_steps = [[5, ["attemptCredentialsReuse"]], [6, ["attemptCredentialsReuse", "guessCredentials"]], [0, ["softwareProductAbuse", "attemptFullAccessFromSupplyChainCompromise"]], [8, ["attemptCredentialsReuse"]]]
-
+                number_of_traversable_attack_steps = 173    # Value derived from bfs, which includes non-reachable attacksteps.
                 for asset_id, attack_steps in entry_point_attack_steps:
                     asset = self.model.get_asset_by_id(asset_id)
                     self.model.attackers[0].entry_points.append((asset, attack_steps))
@@ -278,7 +281,10 @@ class TestAttackSimulation(unittest.TestCase):
                 cost = attack_simulation.random_path()
 
                 # Assert
-                self.assertEqual(len(attack_simulation.visited), number_of_reachable_attack_steps)
+                self.assertLessEqual(len(attack_simulation.visited), number_of_traversable_attack_steps)
+                for horizon_node in attack_simulation.horizon:
+                    if maltoolbox.attackgraph.query.is_node_traversable_by_attacker(attack_simulation.attackgraph_dictionary[horizon_node], attack_simulation.attacker):
+                        self.assertFalse(horizon_node)
 
 if __name__ == '__main__':
     unittest.main()
