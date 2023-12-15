@@ -35,14 +35,12 @@ Open the terminal, navigate to the mgg-poject directory "interface", and run:
 ````
 python main.py
 ````
-This flowchart shows the workflow of the interface (NOTE: Not yet updated, since the reachability analysis is not included in this updated version):
-![interface flowchart](assets/interface_flowchart.png)
 
-#### What does the attack simulations do?
+#### What do the attack simulations do?
 * **Step by step attack** - Simulate the attack path from the attacker node by manually choosing which nodes to move forward to.
 * **Shortest path Dijkstra** - Get the shortest path from the attacker node to a target attack step.
 * **Random path** - Get a random path of attack steps. It is possible to search for a target attack step and adding a cost budget for the attacker. It is also possible to just specify the target or only use an attack budget without a target. 
-* **BFS** - Get a subgraph where all nodes are within the cost budget of the attacker. Note that the attack step type is not considered.
+* **BFS** - Get a subgraph where all nodes are within the cost budget of the attacker in all directions. Note that the attack step type is not considered.
 
 #### Example to get started
 1. Activate the venv.
@@ -50,11 +48,14 @@ This flowchart shows the workflow of the interface (NOTE: Not yet updated, since
 3. Now you can choose the *step-by-step* attack option, or any of the graph algorithms.
 4. Open the main.py file and look at the comments where some example targets are suggested.
 5. Note: The attacker and its entry points for all simulations are fixed in the code and this will be necessary to modify later.
-   
+
+#### Tests
+The file *test.py* contains tests for Dijkstra and Random path. Run the test file with ````python test.py````.
+
 #### TODO
-* Add AO* to the rest of the code.
 * Add more node properties and labels to show Neo4j.
     * ...by modifying the upload_graph_to_neo4j function in main.py.
 * Show the result path together with the attack graph and asset graph in Neo4j (because right now the paths are displayed separately)
 * Error handling on user input.
+* Use TTC samles for the cost for attack steps.
 
