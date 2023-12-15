@@ -141,7 +141,7 @@ class TestAttackSimulation(unittest.TestCase):
         self.assertEqual(cost, actual_cost)
         self.assertEqual(attack_simulation.visited, actual_visited_attack_steps)
 
-    def test_random_path_with_infinate_cost_budget_on_reachable_node(self):
+    def test_random_path_with_infinite_cost_budget_on_reachable_node(self):
         # Arrange
         target_attack_step = "Application:0:bypassSupplyChainAuditing"
         entry_point_attack_steps = [[5, ["attemptCredentialsReuse"]], [6, ["attemptCredentialsReuse", "guessCredentials"]], [0, ["softwareProductAbuse", "attemptFullAccessFromSupplyChainCompromise"]], [8, ["attemptCredentialsReuse"]]]
@@ -158,7 +158,7 @@ class TestAttackSimulation(unittest.TestCase):
         self.assertGreater(cost, 0)
         self.assertIn(target_attack_step, attack_simulation.visited)
 
-    def test_random_path_with_infinate_cost_budget_on_unreachable_node(self):
+    def test_random_path_with_infinite_cost_budget_on_unreachable_node(self):
         # Arrange
         target_attack_step = "Credentials:8:extract"
         entry_point_attack_steps = [[5, ["attemptCredentialsReuse"]], [6, ["attemptCredentialsReuse", "guessCredentials"]], [0, ["softwareProductAbuse"]], [8, ["attemptCredentialsReuse"]]]
@@ -178,7 +178,7 @@ class TestAttackSimulation(unittest.TestCase):
                 if maltoolbox.attackgraph.query.is_node_traversable_by_attacker(attack_simulation.attackgraph_dictionary[horizon_node], attack_simulation.attacker):
                     self.assertFalse(horizon_node)
 
-    def test_random_path_with_infinate_cost_budget_on_reachable_node_containing_and_step(self):
+    def test_random_path_with_infinite_cost_budget_on_reachable_node_containing_and_step(self):
             # Arrange
             target_attack_step = "Application:0:fullAccessFromSupplyChainCompromise"
             entry_point_attack_steps = [[5, ["attemptCredentialsReuse"]], [6, ["attemptCredentialsReuse", "guessCredentials"]], [0, ["softwareProductAbuse", "attemptFullAccessFromSupplyChainCompromise"]], [8, ["attemptCredentialsReuse"]]]
