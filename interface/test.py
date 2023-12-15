@@ -1,5 +1,4 @@
 import unittest
-from py2neo import Graph
 import maltoolbox.attackgraph.attackgraph
 import maltoolbox.ingestors.neo4j
 import maltoolbox.model.model
@@ -10,7 +9,6 @@ import maltoolbox.attackgraph.attacker
 # Custom files.
 import constants
 from attack_simulation import AttackSimulation
-import help_functions
 
 class TestAttackSimulation(unittest.TestCase):
 
@@ -156,7 +154,7 @@ class TestAttackSimulation(unittest.TestCase):
         self.assertEqual(cost, actual_cost)
         self.assertEqual(attack_simulation.visited, actual_visited_attack_steps)
 
-    def test_random_path_with_infinate_time_budget_on_reachable_node(self):
+    def test_random_path_with_infinate_cost_budget_on_reachable_node(self):
         # Arrange
         target_attack_step = "Application:0:bypassSupplyChainAuditing"
         entry_point_attack_steps = [[5, ["attemptCredentialsReuse"]], [6, ["attemptCredentialsReuse", "guessCredentials"]], [0, ["softwareProductAbuse", "attemptFullAccessFromSupplyChainCompromise"]], [8, ["attemptCredentialsReuse"]]]
@@ -177,7 +175,7 @@ class TestAttackSimulation(unittest.TestCase):
         self.assertGreater(cost, 0)
         self.assertIn(target_attack_step, attack_simulation.visited)
 
-    def test_random_path_with_infinate_time_budget_on_unreachable_node(self):
+    def test_random_path_with_infinate_cost_budget_on_unreachable_node(self):
         # Arrange
         target_attack_step = "Credentials:8:extract"
         entry_point_attack_steps = [[5, ["attemptCredentialsReuse"]], [6, ["attemptCredentialsReuse", "guessCredentials"]], [0, ["softwareProductAbuse"]], [8, ["attemptCredentialsReuse"]]]
@@ -196,8 +194,91 @@ class TestAttackSimulation(unittest.TestCase):
 
         # Assert
         self.assertGreater(cost, 0)
-        self.assertIn(target_attack_step, attack_simulation.visited)
+        self.assertNotIn(target_attack_step, attack_simulation.visited)
 
+    def test_random_path_with_infinate_cost_budget_on_reachable_node_containing_and_step(self):
+            # Arrange
+            target_attack_step = "Application:0:fullAccessFromSupplyChainCompromise"
+            entry_point_attack_steps = [[5, ["attemptCredentialsReuse"]], [6, ["attemptCredentialsReuse", "guessCredentials"]], [0, ["softwareProductAbuse", "attemptFullAccessFromSupplyChainCompromise"]], [8, ["attemptCredentialsReuse"]]]
+            optimal_cost = 19
+
+            for asset_id, attack_steps in entry_point_attack_steps:
+                asset = self.model.get_asset_by_id(asset_id)
+                self.model.attackers[0].entry_points.append((asset, attack_steps))
+            
+            self.attackgraph.attach_attackers(self.model)
+            attacker = self.attackgraph.attackers[0]
+
+            # Act
+            attack_simulation = AttackSimulation(self.attackgraph, attacker) 
+            attack_simulation.set_target_node(target_attack_step)
+            cost = attack_simulation.random_path()
+
+            # Assert
+            self.assertGreater(cost, optimal_cost) # Greater than the cost for the shortest path.
+            self.assertIn(target_attack_step, attack_simulation.visited)
+
+    def test_random_path_with_restricted_cost_budget_on_reachable_target_node(self):
+            # Arrange
+            target_attack_step = "Credentials:9:propagateOneCredentialCompromised"
+            attacker_cost_budget = 1
+            entry_point_attack_steps = [[5, ["attemptCredentialsReuse"]], [6, ["attemptCredentialsReuse", "guessCredentials"]], [0, ["softwareProductAbuse", "attemptFullAccessFromSupplyChainCompromise"]], [8, ["attemptCredentialsReuse"]]]
+
+            for asset_id, attack_steps in entry_point_attack_steps:
+                asset = self.model.get_asset_by_id(asset_id)
+                self.model.attackers[0].entry_points.append((asset, attack_steps))
+            
+            self.attackgraph.attach_attackers(self.model)
+            attacker = self.attackgraph.attackers[0]
+
+            # Act
+            attack_simulation = AttackSimulation(self.attackgraph, attacker) 
+            attack_simulation.set_attacker_cost_budget(attacker_cost_budget)
+            attack_simulation.set_target_node(target_attack_step)
+            cost = attack_simulation.random_path()
+
+            # Assert
+            self.assertLessEqual(cost, attacker_cost_budget)
+            self.assertNotIn(target_attack_step, attack_simulation.visited)
+
+    def test_random_path_with_cost_budget_and_no_target_node(self):
+                # Arrange
+                attacker_cost_budget = 10
+                entry_point_attack_steps = [[5, ["attemptCredentialsReuse"]], [6, ["attemptCredentialsReuse", "guessCredentials"]], [0, ["softwareProductAbuse", "attemptFullAccessFromSupplyChainCompromise"]], [8, ["attemptCredentialsReuse"]]]
+
+                for asset_id, attack_steps in entry_point_attack_steps:
+                    asset = self.model.get_asset_by_id(asset_id)
+                    self.model.attackers[0].entry_points.append((asset, attack_steps))
+                
+                self.attackgraph.attach_attackers(self.model)
+                attacker = self.attackgraph.attackers[0]
+
+                # Act
+                attack_simulation = AttackSimulation(self.attackgraph, attacker) 
+                attack_simulation.set_attacker_cost_budget(attacker_cost_budget)
+                cost = attack_simulation.random_path()
+
+                # Assert
+                self.assertLessEqual(cost, attacker_cost_budget)
+
+    def test_random_path_with_no_cost_budget_and_no_target_node(self):
+                # Arrange
+                number_of_reachable_attack_steps = 137
+                entry_point_attack_steps = [[5, ["attemptCredentialsReuse"]], [6, ["attemptCredentialsReuse", "guessCredentials"]], [0, ["softwareProductAbuse", "attemptFullAccessFromSupplyChainCompromise"]], [8, ["attemptCredentialsReuse"]]]
+
+                for asset_id, attack_steps in entry_point_attack_steps:
+                    asset = self.model.get_asset_by_id(asset_id)
+                    self.model.attackers[0].entry_points.append((asset, attack_steps))
+                
+                self.attackgraph.attach_attackers(self.model)
+                attacker = self.attackgraph.attackers[0]
+
+                # Act
+                attack_simulation = AttackSimulation(self.attackgraph, attacker) 
+                cost = attack_simulation.random_path()
+
+                # Assert
+                self.assertEqual(len(attack_simulation.visited), number_of_reachable_attack_steps)
 
 if __name__ == '__main__':
     unittest.main()
