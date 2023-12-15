@@ -51,7 +51,7 @@ class AttackSimulation:
         Prints the horizon attack steps and the type in custom format.
         """
         horizon_dict = self.build_horizon_dict()
-        print(f"{constants.ATTACKER_COLOR}Attacker Horizon{constants.STANDARD}")
+        print(f"{constants.RED}Attacker Horizon{constants.STANDARD}")
         help_functions.print_dictionary(horizon_dict)
 
     def add_children_to_horizon(self, node):
@@ -106,7 +106,7 @@ class AttackSimulation:
         
         # Begin step by step attack simulation.
         while True:
-            print(f"{constants.ATTACKER_COLOR}options{constants.STANDARD}")
+            print(f"{constants.RED}options{constants.STANDARD}")
             help_functions.print_dictionary(constants.STEP_BY_STEP_ATTACK_COMMANDS)
             command = input("Choose: ")
 
@@ -261,10 +261,7 @@ class AttackSimulation:
                     elif neighbor.type == 'and':
                         costs[neighbor.id] = tentative_g_score
                         came_from[neighbor.id].append(current_node)
-
-        self.visited = set()
-        return self.reconstruct_path(came_from, current_node, costs_copy)[0]
-        #return 
+        return 0
 
     def reconstruct_path(self, came_from, current, costs):
         """
@@ -331,9 +328,7 @@ class AttackSimulation:
         - cost: The total cost of the random path.
         """
         self.visited.add(self.start_node)
-        came_from = {key: [] for key in self.attackgraph_dictionary.keys()}#dict.fromkeys(node_ids, '')
-        target_found = False
-        unreachable_horizon_nodes = set()
+        came_from = {key: [] for key in self.attackgraph_dictionary.keys()}
 
         # Initialize the attack horizon.
         # TODO Assuming the horizon is the direct children attack steps.
@@ -343,11 +338,9 @@ class AttackSimulation:
 
         costs = self.get_costs()
         cost = 0
-
-        if self.target_node == None and self.attacker_cost_budget == None:
-            return cost
         
-        while self.horizon and unreachable_horizon_nodes != self.horizon:
+        traversable_nodes_exist = True
+        while traversable_nodes_exist:
             next_node_id = random.choice(list(self.horizon))
             next_node = self.attackgraph_dictionary[next_node_id]
 
@@ -362,25 +355,22 @@ class AttackSimulation:
                 for parent in came_from[next_node.id]:
                     self.path[parent].append(self.attackgraph_dictionary[next_node.id])
                 cost += costs[next_node.id]
-                if next_node.id in unreachable_horizon_nodes:
-                    unreachable_horizon_nodes.remove(next_node.id)
 
                 # Update the horizon.
                 self.horizon.remove(next_node.id)
                 for node in next_node.children:
-                    self.horizon.add(node.id)
-                    came_from[node.id].append(next_node.id)
+                    if node.id not in self.visited:
+                        self.horizon.add(node.id)
+                        came_from[node.id].append(next_node.id)
 
                 # Check if the target node was selected (if the target node was specified).
                 if self.target_node != None and next_node.id == self.target_node:
-                    target_found = True
-                    print("The target,", self.target_node, "was found!")
                     break
-            else:
-                unreachable_horizon_nodes.add(next_node.id)
-        # Check if the target never was selected in the path.
-        if self.target_node != None and target_found == False:
-            print("The target,", self.target_node, "was not found!")
+
+            traversable_nodes_exist = False
+            for horizon_node in self.horizon:
+                if maltoolbox.attackgraph.query.is_node_traversable_by_attacker(self.attackgraph_dictionary[horizon_node], self.attacker):
+                    traversable_nodes_exist = True
         return cost
 
     def bfs(self):
