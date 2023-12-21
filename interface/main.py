@@ -52,14 +52,6 @@ def main():
     maltoolbox.ingestors.neo4j.ingest_attack_graph(attackgraph, constants.URI, constants.USERNAME, constants.PASSWORD, constants.DBNAME, delete=True)
     print("The attackgraph is uploaded to Neo4j.")
 
-    # Calculate new cost if the output file exists or is empty
-    # TODO draw samples from ttc instead.
-    if not os.path.exists(constants.COST_FILE) or os.stat(constants.COST_FILE).st_size == 0:
-        help_functions.calculate_costs_and_save_as_json(attackgraph.nodes, constants.COST_FILE)
-        print(f"Costs saved to {constants.COST_FILE}")
-    else:
-        print(f"{constants.COST_FILE} already contains data. Skipping calculation.")
-   
     # Create AttackSimulation instance.
     attack_simulation = AttackSimulation(attackgraph, attacker) 
 
@@ -68,7 +60,7 @@ def main():
     print(f"{constants.PINK}Choose any of the options below. If you want to exit, press any key.{constants.STANDARD}")
     help_functions.print_dictionary(constants.ATTACK_OPTIONS) 
     user_input = input(f"Which simulation? {attack_options}:")
-
+    
     if user_input == attack_options[0]:
         # Traverse attack graph step by step.
         print(f"{constants.PINK}{constants.ATTACK_OPTIONS[user_input]}{constants.STANDARD}")
@@ -151,8 +143,6 @@ def main():
             cost = attack_simulation.bfs()
             print("The cost for the attacker for traversing the path", cost)
             attack_simulation.upload_graph_to_neo4j(neo4j_graph_connection, add_horizon=False)
-
-    
 
 
 

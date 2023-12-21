@@ -57,6 +57,7 @@ class TestAttackSimulation(unittest.TestCase):
         
         # Act
         attack_simulation = AttackSimulation(self.attackgraph, attacker) 
+        attack_simulation.set_use_ttc(False)
         attack_simulation.set_target_node(target_attack_step)
         cost = attack_simulation.dijkstra()
 
@@ -76,6 +77,7 @@ class TestAttackSimulation(unittest.TestCase):
         
         # Act
         attack_simulation = AttackSimulation(self.attackgraph, attacker) 
+        attack_simulation.set_use_ttc(False)
         attack_simulation.set_target_node(target_attack_step)
         cost = attack_simulation.dijkstra()
 
@@ -97,6 +99,7 @@ class TestAttackSimulation(unittest.TestCase):
         
         # Act
         attack_simulation = AttackSimulation(self.attackgraph, attacker) 
+        attack_simulation.set_use_ttc(False)
         attack_simulation.set_target_node(target_attack_step)
         cost = attack_simulation.dijkstra()
 
@@ -115,6 +118,7 @@ class TestAttackSimulation(unittest.TestCase):
         
         # Act
         attack_simulation = AttackSimulation(self.attackgraph, attacker) 
+        attack_simulation.set_use_ttc(False)
         attack_simulation.set_target_node(target_attack_step)
         cost = attack_simulation.dijkstra()
 
@@ -134,6 +138,7 @@ class TestAttackSimulation(unittest.TestCase):
         
         # Act
         attack_simulation = AttackSimulation(self.attackgraph, attacker) 
+        attack_simulation.set_use_ttc(False)
         attack_simulation.set_target_node(target_attack_step)
         cost = attack_simulation.dijkstra()
 
@@ -151,6 +156,7 @@ class TestAttackSimulation(unittest.TestCase):
 
         # Act
         attack_simulation = AttackSimulation(self.attackgraph, attacker) 
+        attack_simulation.set_use_ttc(False)
         attack_simulation.set_target_node(target_attack_step)
         cost = attack_simulation.random_path()
 
@@ -168,6 +174,7 @@ class TestAttackSimulation(unittest.TestCase):
 
         # Act
         attack_simulation = AttackSimulation(self.attackgraph, attacker) 
+        attack_simulation.set_use_ttc(False)
         attack_simulation.set_target_node(target_attack_step)
         cost = attack_simulation.random_path()
 
@@ -189,6 +196,7 @@ class TestAttackSimulation(unittest.TestCase):
 
             # Act
             attack_simulation = AttackSimulation(self.attackgraph, attacker) 
+            attack_simulation.set_use_ttc(False)
             attack_simulation.set_target_node(target_attack_step)
             cost = attack_simulation.random_path()
 
@@ -207,6 +215,7 @@ class TestAttackSimulation(unittest.TestCase):
 
             # Act
             attack_simulation = AttackSimulation(self.attackgraph, attacker) 
+            attack_simulation.set_use_ttc(False)
             attack_simulation.set_attacker_cost_budget(attacker_cost_budget)
             attack_simulation.set_target_node(target_attack_step)
             cost = attack_simulation.random_path()
@@ -225,6 +234,7 @@ class TestAttackSimulation(unittest.TestCase):
 
                 # Act
                 attack_simulation = AttackSimulation(self.attackgraph, attacker) 
+                attack_simulation.set_use_ttc(False)
                 attack_simulation.set_attacker_cost_budget(attacker_cost_budget)
                 cost = attack_simulation.random_path()
 
@@ -241,6 +251,7 @@ class TestAttackSimulation(unittest.TestCase):
 
                 # Act
                 attack_simulation = AttackSimulation(self.attackgraph, attacker) 
+                attack_simulation.set_use_ttc(False)
                 cost = attack_simulation.random_path()
 
                 # Assert

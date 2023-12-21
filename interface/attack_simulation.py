@@ -3,10 +3,11 @@ import constants
 import maltoolbox.attackgraph.query
 import maltoolbox
 import maltoolbox.attackgraph.attackgraph
-from py2neo import Graph, Node, Relationship
+from py2neo import Node, Relationship
 from collections import deque
 import heapq
 import random
+import os
 
 class AttackSimulation:
     
@@ -27,7 +28,11 @@ class AttackSimulation:
         self.start_node = attacker.node.id
         self.target_node = None
         self.attacker_cost_budget = None
+        self.use_ttc = True
     
+    def set_use_ttc(self, boolean):
+        self.use_ttc = boolean
+
     def set_target_node(self, target_node):
         """
         Set the target node for the simulation.
@@ -308,14 +313,30 @@ class AttackSimulation:
 
     def get_costs(self):
         """
-        TODO Currently there is no cost attribute, so this function is used instead as a temporary fix. 
-        Later the file cost_from_ttc.py can perhaps be used to convert ttc to cost.
+        There is no cost attribute in the attack graph, the attack step costs are calculated separately. 
+        If use_ttc is False, an existing json file with costs are loaded as a dictionary. If use_ttc is True,
+        the costs are calculated from samples drawn from the ttc distribution of the attack steps.
 
         Return:
-        A dictionary containing all attack step ids as keys, and the cost as values.
+        - cost_dictionary: A dictionary containing all attack step ids as keys, and the cost as values.
         """
-        return help_functions.load_costs_from_file()
+        if self.use_ttc == False:
+            cost_dictionary = help_functions.load_costs_from_file()
+        elif self.use_ttc == True:
+            cost_dictionary = self.get_cost_from_ttc()
+        print(len(cost_dictionary.keys()))
+        return cost_dictionary
 
+    def get_cost_from_ttc(self):
+        cost_dictionary = {}
+        for attackgraph_node in self.attackgraph_instance.nodes:
+            ttc = attackgraph_node.ttc
+            if ttc == None:
+                cost_dictionary[attackgraph_node.id] = 0
+            elif ttc != None:
+                cost_dictionary[attackgraph_node.id] = help_functions.cost_from_ttc(ttc, 100)
+        return cost_dictionary
+    
     def random_path(self):
         """
         Generate a random attack path in the attack graph, considering attacker cost budget and/or target node.
