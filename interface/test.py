@@ -126,7 +126,7 @@ class TestAttackSimulation(unittest.TestCase):
         self.assertEqual(cost, actual_cost)
         self.assertNotIn(target_attack_step, attack_simulation.visited)
 
-    def test_shortest_path_on_choice_between_two_paths_to_target(self):
+    def test_shortest_path_on_choice_between_2_paths_to_target(self):
         # Arrange
         target_attack_step = "Application:0:fullAccess"
         entry_point_attack_steps = [[5, ["attemptCredentialsReuse"]], [6, ["attemptCredentialsReuse", "guessCredentials"]], [0, ["softwareProductAbuse", "attemptFullAccessFromSupplyChainCompromise", "fullAccess"]], [8, ["attemptCredentialsReuse"]]]
@@ -146,7 +146,48 @@ class TestAttackSimulation(unittest.TestCase):
         self.assertEqual(cost, actual_cost)
         self.assertEqual(attack_simulation.visited, actual_visited_attack_steps)
 
-    def test_random_path_with_infinite_cost_budget_on_reachable_node(self):
+    def test_shortest_path_on_choice_between_4_paths_to_target(self):
+        # Arrange
+        target_attack_step = "Data:4:accessDecryptedData"
+        actual_cost = 23
+        entry_point_attack_steps = [[5, ["attemptCredentialTheft", "attemptReadFromReplica", "guessCredentialsFromHash", "weakCredentials"]], [6, ["attemptUse"]]]
+        self.model = add_entry_points_to_attacker(self.model, entry_point_attack_steps)
+        self.attackgraph.attach_attackers(self.model)
+        attacker = self.attackgraph.attackers[0]
+
+        # Act
+        attack_simulation = AttackSimulation(self.attackgraph, attacker) 
+        attack_simulation.set_use_ttc(False)
+        attack_simulation.set_target_node(target_attack_step)
+        cost = attack_simulation.dijkstra()
+
+        # Assert
+        self.assertEqual(cost, actual_cost)
+
+    def test_shortest_path_on_one_possible_path_but_5_entry_points(self):
+            # Arrange
+            target_attack_step = "Data:4:accessDecryptedData"
+            actual_cost = 48
+            entry_point_attack_steps = [[5, ["attemptCredentialTheft", "attemptReadFromReplica", "guessCredentialsFromHash", "weakCredentials"]], [6, ["attemptUse"]]]
+            self.model = add_entry_points_to_attacker(self.model, entry_point_attack_steps)
+            self.attackgraph.attach_attackers(self.model)
+            attacker = self.attackgraph.attackers[0]
+
+            node = self.attackgraph.get_node_by_id("Credentials:5:use")
+            node.type = "and"
+            node.parents.append("Credentials:6:use")
+
+            # Act
+            attack_simulation = AttackSimulation(self.attackgraph, attacker) 
+            attack_simulation.set_use_ttc(False)
+            attack_simulation.set_target_node(target_attack_step)
+            cost = attack_simulation.dijkstra()
+
+            # Assert
+            self.assertEqual(cost, actual_cost)
+        
+
+    def test_random_path_with_infinate_cost_budget_on_reachable_node(self):
         # Arrange
         target_attack_step = "Application:0:bypassSupplyChainAuditing"
         entry_point_attack_steps = [[5, ["attemptCredentialsReuse"]], [6, ["attemptCredentialsReuse", "guessCredentials"]], [0, ["softwareProductAbuse", "attemptFullAccessFromSupplyChainCompromise"]], [8, ["attemptCredentialsReuse"]]]
@@ -164,7 +205,7 @@ class TestAttackSimulation(unittest.TestCase):
         self.assertGreater(cost, 0)
         self.assertIn(target_attack_step, attack_simulation.visited)
 
-    def test_random_path_with_infinite_cost_budget_on_unreachable_node(self):
+    def test_random_path_with_infinate_cost_budget_on_unreachable_node(self):
         # Arrange
         target_attack_step = "Credentials:8:extract"
         entry_point_attack_steps = [[5, ["attemptCredentialsReuse"]], [6, ["attemptCredentialsReuse", "guessCredentials"]], [0, ["softwareProductAbuse"]], [8, ["attemptCredentialsReuse"]]]
@@ -185,7 +226,7 @@ class TestAttackSimulation(unittest.TestCase):
                 if maltoolbox.attackgraph.query.is_node_traversable_by_attacker(attack_simulation.attackgraph_dictionary[horizon_node], attack_simulation.attacker):
                     self.assertFalse(horizon_node)
 
-    def test_random_path_with_infinite_cost_budget_on_reachable_node_containing_and_step(self):
+    def test_random_path_with_infinate_cost_budget_on_reachable_node_containing_and_step(self):
             # Arrange
             target_attack_step = "Application:0:fullAccessFromSupplyChainCompromise"
             entry_point_attack_steps = [[5, ["attemptCredentialsReuse"]], [6, ["attemptCredentialsReuse", "guessCredentials"]], [0, ["softwareProductAbuse", "attemptFullAccessFromSupplyChainCompromise"]], [8, ["attemptCredentialsReuse"]]]
