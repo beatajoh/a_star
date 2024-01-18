@@ -254,7 +254,7 @@ class AttackSimulation:
                 # Try the neighbor node with a lower g_score than the previous node.
                 if tentative_g_score < g_score[neighbor.id]:
                     # If it is an 'or' node or if the and all parents to the 'and' node has been visited,
-                    # continue to try this path.                       
+                    # continue to try this path.      
                     if maltoolbox.attackgraph.query.is_node_traversable_by_attacker(neighbor, self.attacker):
                         self.attacker.reached_attack_steps.append(neighbor)
                         came_from[neighbor.id].append(current_node)
@@ -324,7 +324,6 @@ class AttackSimulation:
             cost_dictionary = help_functions.load_costs_from_file()
         elif self.use_ttc == True:
             cost_dictionary = self.get_cost_from_ttc()
-        print(len(cost_dictionary.keys()))
         return cost_dictionary
 
     def get_cost_from_ttc(self):

@@ -175,13 +175,16 @@ class TestAttackSimulation(unittest.TestCase):
 
             node = self.attackgraph.get_node_by_id("Credentials:5:use")
             node.type = "and"
-            node.parents.append("Credentials:6:use")
+            parent_node = self.attackgraph.get_node_by_id("Credentials:6:use")
+            node.parents.append(parent_node)
+            parent_node.children.append(node)
 
             # Act
             attack_simulation = AttackSimulation(self.attackgraph, attacker) 
             attack_simulation.set_use_ttc(False)
             attack_simulation.set_target_node(target_attack_step)
             cost = attack_simulation.dijkstra()
+            print(attack_simulation.visited)
 
             # Assert
             self.assertEqual(cost, actual_cost)

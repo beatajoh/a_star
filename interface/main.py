@@ -105,7 +105,5 @@ def main():
             print("The cost for the attacker for traversing the path", cost)
             attack_simulation.upload_graph_to_neo4j(neo4j_graph_connection, add_horizon=False)
 
-
-
 if __name__=='__main__':
     main()
