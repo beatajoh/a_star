@@ -36,7 +36,8 @@ def main():
     
     # remove
     model.attackers[0].entry_points = []
-    entry_point_attack_steps = [[5, ["attemptCredentialTheft", "attemptReadFromReplica", "guessCredentialsFromHash", "weakCredentials"]], [6, ["attemptUse"]]]
+    #entry_point_attack_steps = [[5, ["attemptCredentialTheft", "attemptReadFromReplica", "guessCredentialsFromHash", "weakCredentials"]], [6, ["attemptUse"]]]
+    entry_point_attack_steps = [[5, ["attemptCredentialsReuse"]], [6, ["attemptCredentialsReuse", "guessCredentials"]], [0, ["softwareProductAbuse", "attemptFullAccessFromSupplyChainCompromise"]], [8, ["attemptCredentialsReuse"]]]
     for asset_id, attack_steps in entry_point_attack_steps:
         asset = model.get_asset_by_id(asset_id)
         model.attackers[0].entry_points.append((asset, attack_steps))

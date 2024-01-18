@@ -256,11 +256,11 @@ class AttackSimulation:
                         self.attacker.reached_attack_steps.append(neighbor)
                         if neighbor.id not in open_set:
                             heapq.heappush(open_set, (f_score[neighbor.id], neighbor.id))
-
+                    elif neighbor.type == 'and':
+                        costs[neighbor.id] = tentative_g_score
+                        came_from[neighbor.id].append(current_node)
                 # If the node is an 'and' node, still update the node cost and keep track of the path.
                 elif neighbor.type == 'and' and self.attackgraph_dictionary[current_node].is_necessary == True:
-                    #print("Current", current_node)
-                    #print("neighbor", neighbor.id)
                     costs[neighbor.id] = tentative_g_score
                     came_from[neighbor.id].append(current_node)
         return 0
