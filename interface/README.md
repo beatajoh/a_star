@@ -52,6 +52,35 @@ python main.py
 #### Tests
 The file *test.py* contains tests for Dijkstra and Random path. Run the test file with ````python test.py````.
 
+#### Some test cases for the provided model.json
+- Make sure that the predefined cost file is used, by setting attack_simulation.use_ttc = False.
+- Set the start node to "Attacker:12:firstSteps".
+- Ensure that the attacker has the entry points: "Credentials:5:attemptCredentialsReuse", "Credentials:8:attemptCredentialsReuse", "Credentials:6:attemptCredentialsReuse", "Credentials:6:guessCredentials", "Application:0:softwareProductAbuse".
+
+**Shortest path with Dijkstra**
+- target_node_id: "Credentials:6:attemptCredentialsReuse". cost: 4.
+
+Now also add "Application:0:attemptFullAccessFromSupplyChainCompromise" as an attacker entry point for the rest of the test cases.
+
+- target_node_id: "Application:0:fullAccess". cost: 9+3+4+2+1=19.
+
+- target_node_id: "Application:0:attemptApplicationRespondConnectThroughData". cost: 9+3+4+2+1+3=22.
+
+- target_node_id:"Application:0:attemptModify". cost: 9+3+4+2+1+10=29.
+
+- target_node_id: "Credentials:9:propagateOneCredentialCompromised". cost: 79.
+
+- target_node_id: "Credentials:5:extract". This node is not reachable, so it should not be in the visited set.
+
+**Random path**
+
+- It should be able to find Application:0:bypassSupplyChainAuditing without a budget.
+
+- It shoulde be able to find Application:0:fullAccessFromSupplyChainCompromise, without a budget or a very large budget like 10000. But this will be more expensive compared to the previous case since we have an 'and' step in the path. if you set the budget to 10, then the target is not found.
+
+- It should be able to find Application:0:attemptModify without a budget. But this will be more expensive compared to the previous case since we add a couple of 'or' steps.
+
+
 #### TODO
 * Add more node properties and labels to show Neo4j.
     * ...by modifying the upload_graph_to_neo4j function in main.py.
