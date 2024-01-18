@@ -33,10 +33,13 @@ def main():
 
     # Select one attacker for the simulation.
     # Note: it is possible to add a custom attacker with the model module and thereafter you can run attackgraph.attach_attackers.
-    asset = model.get_asset_by_id(0)
-    model.attackers[0].entry_points.append((asset, ["attemptFullAccessFromSupplyChainCompromise"]))
+    model.attackers[0].entry_points = []
+    entry_point_attack_steps = [[5, ["attemptCredentialTheft", "attemptReadFromReplica", "guessCredentialsFromHash", "weakCredentials"]], [6, ["attemptUse"]]]
+    model = help_functions.add_entry_points_to_attacker(model, entry_point_attack_steps)
+    attackgraph.get_node_by_id("Credentials:6:use").is_necessary = False #True
+    attackgraph.get_node_by_id("Credentials:5:attemptUse").is_necessary = True    
+    
     attackgraph.attach_attackers(model)
-
     attacker = attackgraph.attackers[0]
     attacker_entry_point = attacker.node.id
     print("Attacker attack step id:", attacker_entry_point) 

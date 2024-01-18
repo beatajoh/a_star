@@ -109,3 +109,9 @@ def process_sample(distribution):
         scale = 1/scale
         sample = np.random.exponential(scale=scale)
     return sample
+
+def add_entry_points_to_attacker(model, entry_point_attack_steps, attacker_index=0):
+    for asset_id, attack_steps in entry_point_attack_steps:
+                asset = model.get_asset_by_id(asset_id)
+                model.attackers[attacker_index].entry_points.append((asset, attack_steps))
+    return model

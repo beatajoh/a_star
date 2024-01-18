@@ -9,13 +9,8 @@ import maltoolbox.attackgraph.query
 
 # Custom files.
 import constants
+import help_functions
 from attack_simulation import AttackSimulation
-
-def add_entry_points_to_attacker(model, entry_point_attack_steps, attacker_index=0):
-    for asset_id, attack_steps in entry_point_attack_steps:
-                asset = model.get_asset_by_id(asset_id)
-                model.attackers[attacker_index].entry_points.append((asset, attack_steps))
-    return model
 
 class TestAttackSimulation(unittest.TestCase):
 
@@ -51,7 +46,7 @@ class TestAttackSimulation(unittest.TestCase):
         entry_point_attack_steps = [[5, ["attemptCredentialsReuse"]], [6, ["attemptCredentialsReuse", "guessCredentials"]], [0, ["softwareProductAbuse"]], [8, ["attemptCredentialsReuse"]]]
         actual_cost = 4
         actual_visited_attack_steps = {"Attacker:1:firstSteps", "Credentials:6:attemptCredentialsReuse"}
-        self.model = add_entry_points_to_attacker(self.model, entry_point_attack_steps)
+        self.model = help_functions.add_entry_points_to_attacker(self.model, entry_point_attack_steps)
         self.attackgraph.attach_attackers(self.model)
         attacker = self.attackgraph.attackers[0]
         
@@ -70,7 +65,7 @@ class TestAttackSimulation(unittest.TestCase):
         entry_point_attack_steps = [[5, ["attemptCredentialsReuse"]], [6, ["attemptCredentialsReuse", "guessCredentials"]], [0, ["softwareProductAbuse", "attemptFullAccessFromSupplyChainCompromise"]], [8, ["attemptCredentialsReuse"]]]
         actual_cost = 19
         actual_visited_attack_steps = {"Attacker:1:firstSteps", "Application:0:attemptFullAccessFromSupplyChainCompromise", "Application:0:bypassSupplyChainAuditing", "Application:0:supplyChainAuditingBypassed", "Application:0:fullAccessFromSupplyChainCompromise", "Application:0:fullAccess"}
-        self.model = add_entry_points_to_attacker(self.model, entry_point_attack_steps)
+        self.model = help_functions.add_entry_points_to_attacker(self.model, entry_point_attack_steps)
         self.attackgraph.attach_attackers(self.model)
         attacker = self.attackgraph.attackers[0]
         
@@ -91,7 +86,7 @@ class TestAttackSimulation(unittest.TestCase):
         actual_visited_attack_steps = {"Attacker:1:firstSteps", "Credentials:6:attemptCredentialsReuse", "Credentials:6:credentialsReuse", "Credentials:6:attemptUse", "Credentials:6:use", "Credentials:6:attemptPropagateOneCredentialCompromised", \
                                         "Credentials:6:propagateOneCredentialCompromised", "User:11:oneCredentialCompromised", "User:11:passwordReuseCompromise", "Credentials:9:attemptCredentialsReuse", "Credentials:9:credentialsReuse", \
                                         "Credentials:9:attemptUse", "Credentials:9:use", "Credentials:9:attemptPropagateOneCredentialCompromised", "Credentials:9:propagateOneCredentialCompromised"}
-        self.model = add_entry_points_to_attacker(self.model, entry_point_attack_steps)
+        self.model = help_functions.add_entry_points_to_attacker(self.model, entry_point_attack_steps)
         self.attackgraph.attach_attackers(self.model)
         attacker = self.attackgraph.attackers[0]
         
@@ -109,7 +104,7 @@ class TestAttackSimulation(unittest.TestCase):
         target_attack_step = "Credentials:5:extract"
         entry_point_attack_steps = [[5, ["attemptCredentialsReuse"]], [6, ["attemptCredentialsReuse", "guessCredentials"]], [0, ["softwareProductAbuse", "attemptFullAccessFromSupplyChainCompromise"]], [8, ["attemptCredentialsReuse"]]]
         actual_cost = 0
-        self.model = add_entry_points_to_attacker(self.model, entry_point_attack_steps)
+        self.model = help_functions.add_entry_points_to_attacker(self.model, entry_point_attack_steps)
         self.attackgraph.attach_attackers(self.model)
         attacker = self.attackgraph.attackers[0]
         
@@ -128,7 +123,7 @@ class TestAttackSimulation(unittest.TestCase):
         entry_point_attack_steps = [[5, ["attemptCredentialsReuse"]], [6, ["attemptCredentialsReuse", "guessCredentials"]], [0, ["softwareProductAbuse", "attemptFullAccessFromSupplyChainCompromise", "fullAccess"]], [8, ["attemptCredentialsReuse"]]]
         actual_cost = 1
         actual_visited_attack_steps = {"Attacker:1:firstSteps", "Application:0:fullAccess"}
-        self.model = add_entry_points_to_attacker(self.model, entry_point_attack_steps)
+        self.model = help_functions.add_entry_points_to_attacker(self.model, entry_point_attack_steps)
         self.attackgraph.attach_attackers(self.model)
         attacker = self.attackgraph.attackers[0]
         
@@ -146,7 +141,7 @@ class TestAttackSimulation(unittest.TestCase):
         target_attack_step = "Data:4:accessDecryptedData"
         actual_cost = 23
         entry_point_attack_steps = [[5, ["attemptCredentialTheft", "attemptReadFromReplica", "guessCredentialsFromHash", "weakCredentials"]], [6, ["attemptUse"]]]
-        self.model = add_entry_points_to_attacker(self.model, entry_point_attack_steps)
+        self.model = help_functions.add_entry_points_to_attacker(self.model, entry_point_attack_steps)
         self.attackgraph.attach_attackers(self.model)
         attacker = self.attackgraph.attackers[0]
 
@@ -166,7 +161,7 @@ class TestAttackSimulation(unittest.TestCase):
             target_attack_step = "Data:4:accessDecryptedData"
             actual_cost = 48
             entry_point_attack_steps = [[5, ["attemptCredentialTheft", "attemptReadFromReplica", "guessCredentialsFromHash", "weakCredentials"]], [6, ["attemptUse"]]]
-            self.model = add_entry_points_to_attacker(self.model, entry_point_attack_steps)
+            self.model = help_functions.add_entry_points_to_attacker(self.model, entry_point_attack_steps)
             self.attackgraph.attach_attackers(self.model)
             attacker = self.attackgraph.attackers[0]
 
@@ -183,7 +178,7 @@ class TestAttackSimulation(unittest.TestCase):
         # Arrange
         target_attack_step = "Application:0:bypassSupplyChainAuditing"
         entry_point_attack_steps = [[5, ["attemptCredentialsReuse"]], [6, ["attemptCredentialsReuse", "guessCredentials"]], [0, ["softwareProductAbuse", "attemptFullAccessFromSupplyChainCompromise"]], [8, ["attemptCredentialsReuse"]]]
-        self.model = add_entry_points_to_attacker(self.model, entry_point_attack_steps)
+        self.model = help_functions.add_entry_points_to_attacker(self.model, entry_point_attack_steps)
         self.attackgraph.attach_attackers(self.model)
         attacker = self.attackgraph.attackers[0]
 
@@ -200,7 +195,7 @@ class TestAttackSimulation(unittest.TestCase):
         # Arrange
         target_attack_step = "Credentials:8:extract"
         entry_point_attack_steps = [[5, ["attemptCredentialsReuse"]], [6, ["attemptCredentialsReuse", "guessCredentials"]], [0, ["softwareProductAbuse"]], [8, ["attemptCredentialsReuse"]]]
-        self.model = add_entry_points_to_attacker(self.model, entry_point_attack_steps)
+        self.model = help_functions.add_entry_points_to_attacker(self.model, entry_point_attack_steps)
         self.attackgraph.attach_attackers(self.model)
         attacker = self.attackgraph.attackers[0]
 
@@ -221,7 +216,7 @@ class TestAttackSimulation(unittest.TestCase):
             target_attack_step = "Application:0:fullAccessFromSupplyChainCompromise"
             entry_point_attack_steps = [[5, ["attemptCredentialsReuse"]], [6, ["attemptCredentialsReuse", "guessCredentials"]], [0, ["softwareProductAbuse", "attemptFullAccessFromSupplyChainCompromise"]], [8, ["attemptCredentialsReuse"]]]
             optimal_cost = 19
-            self.model = add_entry_points_to_attacker(self.model, entry_point_attack_steps)
+            self.model = help_functions.add_entry_points_to_attacker(self.model, entry_point_attack_steps)
             self.attackgraph.attach_attackers(self.model)
             attacker = self.attackgraph.attackers[0]
 
@@ -239,7 +234,7 @@ class TestAttackSimulation(unittest.TestCase):
             target_attack_step = "Credentials:9:propagateOneCredentialCompromised"
             attacker_cost_budget = 1
             entry_point_attack_steps = [[5, ["attemptCredentialsReuse"]], [6, ["attemptCredentialsReuse", "guessCredentials"]], [0, ["softwareProductAbuse", "attemptFullAccessFromSupplyChainCompromise"]], [8, ["attemptCredentialsReuse"]]]
-            self.model = add_entry_points_to_attacker(self.model, entry_point_attack_steps)
+            self.model = help_functions.add_entry_points_to_attacker(self.model, entry_point_attack_steps)
             self.attackgraph.attach_attackers(self.model)
             attacker = self.attackgraph.attackers[0]
 
@@ -257,7 +252,7 @@ class TestAttackSimulation(unittest.TestCase):
                 # Arrange
                 attacker_cost_budget = 10
                 entry_point_attack_steps = [[5, ["attemptCredentialsReuse"]], [6, ["attemptCredentialsReuse", "guessCredentials"]], [0, ["softwareProductAbuse", "attemptFullAccessFromSupplyChainCompromise"]], [8, ["attemptCredentialsReuse"]]]
-                self.model = add_entry_points_to_attacker(self.model, entry_point_attack_steps)
+                self.model = help_functions.add_entry_points_to_attacker(self.model, entry_point_attack_steps)
                 self.attackgraph.attach_attackers(self.model)
                 attacker = self.attackgraph.attackers[0]
 
@@ -273,7 +268,7 @@ class TestAttackSimulation(unittest.TestCase):
                 # Arrange
                 entry_point_attack_steps = [[5, ["attemptCredentialsReuse"]], [6, ["attemptCredentialsReuse", "guessCredentials"]], [0, ["softwareProductAbuse", "attemptFullAccessFromSupplyChainCompromise"]], [8, ["attemptCredentialsReuse"]]]
                 number_of_traversable_attack_steps = 173    # Value derived from bfs, which includes non-reachable attacksteps.
-                self.model = add_entry_points_to_attacker(self.model, entry_point_attack_steps)
+                self.model = help_functions.add_entry_points_to_attacker(self.model, entry_point_attack_steps)
                 self.attackgraph.attach_attackers(self.model)
                 attacker = self.attackgraph.attackers[0]
 
