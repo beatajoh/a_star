@@ -16,7 +16,6 @@ def main():
     # Connect to Neo4j graph database.
     print("Starting to connect to Neo4j database.")
     neo4j_graph_connection = Graph(uri=constants.URI, user=constants.USERNAME, password=constants.PASSWORD, name=constants.DBNAME)
-    #neo4j_graph_connection = Graph(constants.URI, auth=(constants.USERNAME, constants.PASSWORD))
     print("Successful connection to Neo4j database.")
 
     # Create the language specification and LanguageClassesFactory instance.
@@ -40,17 +39,18 @@ def main():
 
     attacker = attackgraph.attackers[0]
     attacker_entry_point = attacker.node.id
-    print("Attacker entry point (attack step id) is:", attacker_entry_point) 
+    print("Attacker attack step id:", attacker_entry_point) 
 
-    # Change nodes with type 'defense' so that is_necessary=False, for testing purposes.
+    # Change nodes with type 'defense' so that is_necessary=False.
     for node in attackgraph.nodes:
         if node.type == 'defense':
             node.is_necessary = False
 
-    # Upload the attack graph to Neo4j.
-    print("Starting uploading the attackgraph to Neo4j.")
+    # Upload the attack graph and model to Neo4j.
+    print("Starting uploading the model and attackgraph to Neo4j.")
     maltoolbox.ingestors.neo4j.ingest_attack_graph(attackgraph, constants.URI, constants.USERNAME, constants.PASSWORD, constants.DBNAME, delete=True)
-    print("The attackgraph is uploaded to Neo4j.")
+    maltoolbox.ingestors.neo4j.ingest_model(model, constants.URI, constants.USERNAME, constants.PASSWORD, constants.DBNAME, delete=False)
+    print("The model and attackgraph is uploaded to Neo4j.")
 
     # Create AttackSimulation instance.
     attack_simulation = AttackSimulation(attackgraph, attacker) 
@@ -69,34 +69,6 @@ def main():
 
     elif user_input == attack_options[1]:
         # Traverse attack graph with Dijkstra's algorithm, to get the shortest path.
-        # EXAMPLE for the provided model.json.
-        # set start node as "Attacker:12:firstSteps".
-        # set target_node_id as "Credentials:6:attemptCredentialsReuse".
-        # cost should be 4.
-
-        # EXAMPLE for the provided model.json.
-        # set start node as "Attacker:12:firstSteps", and compromise "Application:0:attemptFullAccessFromSupplyChainCompromise".
-        # set target_node_id as "Application:0:fullAccess".
-        # cost should be 9+3+4+2+1=19.
-
-        # EXAMPLE for the provided model.json.
-        # set start node as "Attacker:12:firstSteps", and compromise "Application:0:attemptFullAccessFromSupplyChainCompromise".
-        # set target_node_id as "Application:0:attemptApplicationRespondConnectThroughData".
-        # cost should be 9+3+4+2+1+3=22.
-        
-        # EXAMPLE for the provided model.json.
-        # set start node as "Attacker:12:firstSteps", and compromise "Application:0:attemptFullAccessFromSupplyChainCompromise".
-        # set target_node_id as "Application:0:attemptModify".
-        # cost should be 9+3+4+2+1+10=29.
-
-        # EXAMPLE
-        # set target_node_id_as "Credentials:9:propagateOneCredentialCompromised".
-        # cost should be 79.
-
-        # EXAMPLE
-        # set target_node_id as "Credentials:5:extract"
-        # This node is not reachable, so it should not be in the result.
-
         print(f"{constants.PINK}{constants.ATTACK_OPTIONS[user_input]}{constants.STANDARD}")
         target_node_id = input("Enter the target node id: ")
         if target_node_id in attack_simulation.attackgraph_dictionary.keys():
@@ -109,17 +81,6 @@ def main():
     elif user_input == attack_options[2]:
         # Traverse attack graph with random walker algorithm (to get a random path).
         # It is optional to enter a target or attacker cost budget.
-
-        # EXAMPLES
-        # It should be able to find Application:0:bypassSupplyChainAuditing without a budget.
-
-        # It shoulde be able to find Application:0:fullAccessFromSupplyChainCompromise, without a budget or a very large budget like 10000. 
-        # But this will be more expensive compared to the previous case since we have an 'and' step in the path.
-        # if you set the budget to 10, then the target is not found.
-
-        # It should be able to find Application:0:attemptModify without a budget.
-        # But this will be more expensive compared to the previous case since we add a couple of 'or' steps.
-
         print(f"{constants.PINK}{constants.ATTACK_OPTIONS[user_input]}{constants.STANDARD}")
         target_node_id = input("Enter the target node id (or press enter): ")
         if target_node_id in attack_simulation.attackgraph_dictionary.keys():
