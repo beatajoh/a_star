@@ -216,8 +216,7 @@ class AttackSimulation:
         node_ids = list(self.attackgraph_dictionary.keys())
         open_set = []
         heapq.heappush(open_set, (0, self.start_node))
-        came_from = dict.fromkeys(node_ids, '')
-        came_from = {key: [] for key in came_from.keys()}
+        came_from = {key: [] for key in node_ids}
 
         # The g_score is a map with default value of "infinity".
         g_score = dict.fromkeys(node_ids, 10000)
@@ -245,22 +244,25 @@ class AttackSimulation:
     
             current_neighbors = self.attackgraph_dictionary[current_node].children # TODO Assuming the horizon is the direct children attack steps.
             for neighbor in current_neighbors:  
-                tentative_g_score = g_score[current_node]+costs[neighbor.id]
+                tentative_g_score = g_score[current_node] + costs[neighbor.id]
                 # Try the neighbor node with a lower g_score than the previous node.
                 if tentative_g_score < g_score[neighbor.id]:
                     # If it is an 'or' node or if the and all parents to the 'and' node has been visited,
                     # continue to try this path.      
                     if maltoolbox.attackgraph.query.is_node_traversable_by_attacker(neighbor, self.attacker):
-                        self.attacker.reached_attack_steps.append(neighbor)
                         came_from[neighbor.id].append(current_node)
                         g_score[neighbor.id] = tentative_g_score
                         f_score[neighbor.id] = tentative_g_score + h_score[neighbor.id] # TODO calculate the h_score for all nodes
+                        self.attacker.reached_attack_steps.append(neighbor)
                         if neighbor.id not in open_set:
                             heapq.heappush(open_set, (f_score[neighbor.id], neighbor.id))
-                    # If the node is an 'and' node, still update the node cost and keep track of the path.
-                    elif neighbor.type == 'and':
-                        costs[neighbor.id] = tentative_g_score
-                        came_from[neighbor.id].append(current_node)
+
+                # If the node is an 'and' node, still update the node cost and keep track of the path.
+                elif neighbor.type == 'and' and self.attackgraph_dictionary[current_node].is_necessary == True:
+                    #print("Current", current_node)
+                    #print("neighbor", neighbor.id)
+                    costs[neighbor.id] = tentative_g_score
+                    came_from[neighbor.id].append(current_node)
         return 0
 
     def reconstruct_path(self, came_from, current, costs):
@@ -290,10 +292,11 @@ class AttackSimulation:
                 # Condition for 'and' node.       
                 if len(current) > 1:
                     for node in current:
-                        path_cost, _= self.reconstruct_path(came_from, node, costs)
-                        cost += path_cost + costs[old_current]
-                        self.path[node].append(self.attackgraph_dictionary[old_current])
-                        self.visited.add(old_current)
+                        if self.attackgraph_dictionary[node].is_necessary == True:
+                            path_cost, _= self.reconstruct_path(came_from, node, costs)
+                            cost += path_cost + costs[old_current]
+                            self.path[node].append(self.attackgraph_dictionary[old_current])
+                            self.visited.add(old_current)
                     break
                 # Condition for 'or' nodes.
                 else:
