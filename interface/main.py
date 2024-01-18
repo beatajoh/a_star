@@ -68,8 +68,7 @@ def main():
     print("The model and attackgraph is uploaded to Neo4j.")
 
     # Create AttackSimulation instance.
-    attack_simulation = AttackSimulation(attackgraph, attacker) 
-    attack_simulation.use_ttc = False
+    attack_simulation = AttackSimulation(attackgraph, attacker, use_ttc=False) 
 
     # Display algorithm options.
     attack_options = list(constants.ATTACK_OPTIONS.keys())

@@ -11,36 +11,34 @@ import os
 
 class AttackSimulation:
     
-    def __init__(self, attackgraph_instance, attacker):
+    def __init__(self, attackgraph_instance, attacker, use_ttc=True):
         """
         Initialize the AttackSimulation instance.
 
         Parameters:
         - attackgraph_instance: An instance of the AttackGraph class.
         - attacker: An instance of the Attacker class.
+        - use_ttc: Boolean indicating whether Time-To-Compromise (TTC) is used. Default is True.
         """
         self.attackgraph_instance = attackgraph_instance
-        self.attackgraph_dictionary = {node.id: node for node in attackgraph_instance.nodes}
+        self.attackgraph_dictionary = {node.id: node for node in attackgraph_instance.nodes}  # Create a dictionary for quick access to nodes by id
         self.attacker = attacker
-        self.path = {key: [] for key in self.attackgraph_dictionary.keys()}
-        self.horizon = set()
-        self.visited = set()
         self.start_node = attacker.node.id
         self.target_node = None
         self.attacker_cost_budget = None
-        self.use_ttc = True
-    
-    def set_use_ttc(self, boolean):
-        self.use_ttc = boolean
+        self.use_ttc = use_ttc
+        self.horizon = set()
+        self.visited = set()
+        self.path = {key: [] for key in self.attackgraph_dictionary.keys()}
 
-    def set_target_node(self, target_node):
+    def set_target_node(self, target_node_id):
         """
         Set the target node for the simulation.
 
         Parameters:
         - target_node: The ID of the target node.
         """
-        self.target_node = target_node
+        self.target_node = target_node_id
 
     def set_attacker_cost_budget(self, attacker_cost_budget):
         """
@@ -109,6 +107,9 @@ class AttackSimulation:
         for node in self.visited:
             self.add_children_to_horizon(self.attackgraph_dictionary[node])
         
+        # Upload attacker path and horizon.
+        self.upload_graph_to_neo4j(neo4j_graph_connection, add_horizon=True)
+            
         # Begin step by step attack simulation.
         while True:
             print(f"{constants.RED}options{constants.STANDARD}")
@@ -137,6 +138,9 @@ class AttackSimulation:
                     # Update the AttackGraphNode status.
                     attacked_node.compromised_by.append(self.attacker)
 
+                    # Update the Attacker status.
+                    self.attacker.reached_attack_steps.append(attacked_node)
+                   
                     # Upload attacker path and horizon.
                     self.upload_graph_to_neo4j(neo4j_graph_connection, add_horizon=True)
                     print("Attack step was compromised.")
