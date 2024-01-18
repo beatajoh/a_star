@@ -33,8 +33,14 @@ def main():
 
     # Select one attacker for the simulation.
     # Note: it is possible to add a custom attacker with the model module and thereafter you can run attackgraph.attach_attackers.
-    asset = model.get_asset_by_id(0)
-    model.attackers[0].entry_points.append((asset, ["attemptFullAccessFromSupplyChainCompromise"]))
+    model.attackers[0].entry_points = []
+    entry_point_attack_steps = [[5, ["attemptCredentialTheft", "attemptReadFromReplica", "guessCredentialsFromHash", "weakCredentials"]], [6, ["attemptUse"]]]
+    for asset_id, attack_steps in entry_point_attack_steps:
+        asset = model.get_asset_by_id(asset_id)
+        model.attackers[0].entry_points.append((asset, attack_steps))
+
+    #asset = model.get_asset_by_id(0)
+    #model.attackers[0].entry_points.append((asset, ["attemptFullAccessFromSupplyChainCompromise"]))
     attackgraph.attach_attackers(model)
 
     attacker = attackgraph.attackers[0]
@@ -54,6 +60,14 @@ def main():
 
     # Create AttackSimulation instance.
     attack_simulation = AttackSimulation(attackgraph, attacker) 
+
+    attack_simulation.use_ttc = False
+    n = attackgraph.get_node_by_id("Credentials:5:use")
+    n.type = "and"
+    p1 = attackgraph.get_node_by_id("Credentials:6:use")
+    p1.is_necessary = "True"
+    p2 = attackgraph.get_node_by_id("Credentials:5:attemptUse")
+    p2.is_necessary = "True"
 
     # Display algorithm options.
     attack_options = list(constants.ATTACK_OPTIONS.keys())
@@ -104,6 +118,13 @@ def main():
             cost = attack_simulation.bfs()
             print("The cost for the attacker for traversing the path", cost)
             attack_simulation.upload_graph_to_neo4j(neo4j_graph_connection, add_horizon=False)
+
+    for key in attack_simulation.path.keys():
+        if len(attack_simulation.path[key]) > 0:
+            print(key, ": ", end=" ")
+            for e in attack_simulation.path[key]:
+                print(e.id)
+            print("\n")
 
 if __name__=='__main__':
     main()

@@ -155,6 +155,10 @@ class TestAttackSimulation(unittest.TestCase):
         self.attackgraph.attach_attackers(self.model)
         attacker = self.attackgraph.attackers[0]
 
+        node = self.attackgraph.get_node_by_id("Credentials:5:use")
+        print(node.type)
+        for p in node.parents:
+            print(p.id, p.is_necessary)
         # Act
         attack_simulation = AttackSimulation(self.attackgraph, attacker) 
         attack_simulation.set_use_ttc(False)
@@ -174,10 +178,12 @@ class TestAttackSimulation(unittest.TestCase):
             attacker = self.attackgraph.attackers[0]
 
             node = self.attackgraph.get_node_by_id("Credentials:5:use")
+            print(node.type)
+            for p in node.parents:
+                print(p.id, p.is_necessary)
             node.type = "and"
             parent_node = self.attackgraph.get_node_by_id("Credentials:6:use")
             node.parents.append(parent_node)
-            parent_node.children.append(node)
 
             # Act
             attack_simulation = AttackSimulation(self.attackgraph, attacker) 
@@ -185,6 +191,9 @@ class TestAttackSimulation(unittest.TestCase):
             attack_simulation.set_target_node(target_attack_step)
             cost = attack_simulation.dijkstra()
             print(attack_simulation.visited)
+            for p in attack_simulation.attacker.reached_attack_steps:
+                print(p.id, p.is_necessary)
+            print(attack_simulation.path["Credentials:6:use"])
 
             # Assert
             self.assertEqual(cost, actual_cost)

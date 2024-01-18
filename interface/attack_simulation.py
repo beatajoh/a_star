@@ -134,9 +134,6 @@ class AttackSimulation:
                     self.horizon.remove(attacked_node_id)
                     self.add_children_to_horizon(attacked_node)
 
-                    # Update the Attacker status.
-                    self.attacker.reached_attack_steps.append(attacked_node)
-            
                     # Update the AttackGraphNode status.
                     attacked_node.compromised_by.append(self.attacker)
 
@@ -219,7 +216,6 @@ class AttackSimulation:
         node_ids = list(self.attackgraph_dictionary.keys())
         open_set = []
         heapq.heappush(open_set, (0, self.start_node))
-        self.visited.add(self.start_node)
         came_from = dict.fromkeys(node_ids, '')
         came_from = {key: [] for key in came_from.keys()}
 
@@ -242,7 +238,6 @@ class AttackSimulation:
         while len(open_set) > 0:
             # The current_node is the node in open_set having the lowest f_score value.
             current_score, current_node = heapq.heappop(open_set)
-            self.visited.add(current_node)
             # Stop condition.
             if current_node == self.target_node:
                 self.visited = set()
