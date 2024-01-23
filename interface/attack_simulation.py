@@ -7,7 +7,6 @@ from py2neo import Node, Relationship
 from collections import deque
 import heapq
 import random
-import os
 
 class AttackSimulation:
     
@@ -29,7 +28,8 @@ class AttackSimulation:
         self.use_ttc = use_ttc
         self.horizon = set()
         self.visited = set()
-        self.path = {key: [] for key in self.attackgraph_dictionary.keys()}
+        self.path = {node.id: [] for node in attackgraph_instance.nodes}
+        self.cost_dictionary = self.get_costs()
 
     def set_target_node(self, target_node_id):
         """
@@ -135,9 +135,6 @@ class AttackSimulation:
                     self.horizon.remove(attacked_node_id)
                     self.add_children_to_horizon(attacked_node)
 
-                    # Update the AttackGraphNode status.
-                    attacked_node.compromised_by.append(self.attacker)
-
                     # Update the Attacker status.
                     self.attacker.reached_attack_steps.append(attacked_node)
                    
@@ -153,6 +150,28 @@ class AttackSimulation:
                 # Return.
                 return
     
+    def create_neo4j_node(self, neo4j_graph_connection, set_of_node_ids, neo4j_node_dict, is_horizon_node=False):
+        for node_id in set_of_node_ids:
+            node = self.attackgraph_dictionary[node_id]
+            asset_and_id = node.id.split(':')
+            asset_and_id = asset_and_id[0] + ':' + asset_and_id[1]
+            neo4j_node = Node(
+                str(asset_and_id),
+                str(is_horizon_node),
+                is_horizon_node = is_horizon_node,
+                name = node.name,
+                full_name = node.id,
+                type = node.type,
+                ttc = str(node.ttc),
+                cost = str(self.cost_dictionary[node.id]) if node.name != "firstSteps" else None,
+                is_necessary = str(node.is_necessary),
+                is_viable = str(node.is_viable),
+            )
+            neo4j_graph_connection.create(neo4j_node)
+            neo4j_node_dict[node_id] = neo4j_node
+            print("ye")
+        return neo4j_node_dict
+        
     def upload_graph_to_neo4j(self, neo4j_graph_connection, add_horizon=False):
         """
         Uploads the traversed path and attacker horizon (optional) by the attacker to the Neo4j database.
@@ -170,31 +189,11 @@ class AttackSimulation:
         
         nodes = {}
         neo4j_graph_connection.delete_all()
-
-        # Build attack steps for Neo4j from all visited nodes.
-        for node_id in self.visited:
-            node = self.attackgraph_dictionary[node_id]
-            neo4j_node = Node(
-                id = node.id,
-                type = node.type,
-                name = node.name,
-                horizon = False
-            )
-            neo4j_graph_connection.create(neo4j_node)
-            nodes[node.id] = neo4j_node
-        
-        # Build horizon attack steps for Neo4j if the horizon is not empty.
+       
+       # Build attack steps for Neo4j from all visited nodes.
+        nodes = self.create_neo4j_node(neo4j_graph_connection, self.visited, nodes)
         if self.horizon and add_horizon:
-            for node_id in self.horizon:
-                node = self.attackgraph_dictionary[node_id]
-                neo4j_node = Node(
-                        id = node.id,
-                        type = node.type,
-                        name = node.name,
-                        horizon = True
-                    )
-                neo4j_graph_connection.create(neo4j_node)
-                nodes[node.id] = neo4j_node
+            nodes = self.create_neo4j_node(neo4j_graph_connection, self.horizon, nodes, is_horizon_node=True)
 
         # Add edges to the attack graph in Neo4j.
         for id in self.attackgraph_dictionary.keys():
@@ -203,11 +202,11 @@ class AttackSimulation:
                     if link.id in nodes.keys():
                         from_node = nodes[id]
                         to_node = nodes[link.id]
-                        if (from_node['horizon'] == False and to_node['horizon'] == False) or \
-                        (from_node['horizon'] == False and to_node['horizon'] == True):
+                        if (from_node['is_horizon_node'] == False and to_node['is_horizon_node'] == False) or \
+                        (from_node['is_horizon_node'] == False and to_node['is_horizon_node'] == True):
                             relationship = Relationship(from_node, "Relationship", to_node)
                             neo4j_graph_connection.create(relationship)
-
+    
     def dijkstra(self):
         """
         Find the shortest path between two nodes using Dijkstra's algorithm with added 
@@ -226,27 +225,28 @@ class AttackSimulation:
         g_score = dict.fromkeys(node_ids, 10000)
         g_score[self.start_node] = 0
 
-        # TODO calculate the h_score for all nodes if possible.
+        # The estimated score between the nodes, and the target.
         h_score = dict.fromkeys(node_ids, 0)
     
         # For node n, f_score[n] = g_score[n] + h_score(n). f_score[n] represents our current best guess as to
         # How cheap a path could be from start to finish if it goes through n.
         f_score = dict.fromkeys(node_ids, 0)
-        f_score[self.start_node] = h_score[self.start_node] # TODO calculate the h_score for all nodes if possible.
+        f_score[self.start_node] = h_score[self.start_node]
         
-        costs = self.get_costs() # TODO Replace with cost attribute.
+        costs = self.cost_dictionary
         costs_copy = costs.copy()
-
         current_node = self.start_node
         while len(open_set) > 0:
             # The current_node is the node in open_set having the lowest f_score value.
-            current_score, current_node = heapq.heappop(open_set)
+            _, current_node = heapq.heappop(open_set)
+
             # Stop condition.
             if current_node == self.target_node:
                 self.visited = set()
                 return self.reconstruct_path(came_from, current_node, costs_copy)[0]
-    
-            current_neighbors = self.attackgraph_dictionary[current_node].children # TODO Assuming the horizon is the direct children attack steps.
+
+            # Iterate over the neighboring nodes assuming this is the direct children attack steps.
+            current_neighbors = self.attackgraph_dictionary[current_node].children
             for neighbor in current_neighbors:  
                 tentative_g_score = g_score[current_node] + costs[neighbor.id]
                 # Try the neighbor node with a lower g_score than the previous node.
@@ -260,10 +260,11 @@ class AttackSimulation:
                         self.attacker.reached_attack_steps.append(neighbor)
                         if neighbor.id not in open_set:
                             heapq.heappush(open_set, (f_score[neighbor.id], neighbor.id))
+                    # If the node is a necessary 'and' node, still update the node cost and keep track of the path.
                     elif neighbor.type == 'and':
                         costs[neighbor.id] = tentative_g_score
                         came_from[neighbor.id].append(current_node)
-                # If the node is an 'and' node, still update the node cost and keep track of the path.
+                # If the node is a necessary 'and' node, still update the node cost and keep track of the path.
                 elif neighbor.type == 'and' and self.attackgraph_dictionary[current_node].is_necessary == True:
                     costs[neighbor.id] = tentative_g_score
                     came_from[neighbor.id].append(current_node)
@@ -352,13 +353,12 @@ class AttackSimulation:
         self.visited.add(self.start_node)
         came_from = {key: [] for key in self.attackgraph_dictionary.keys()}
 
-        # Initialize the attack horizon.
-        # TODO Assuming the horizon is the direct children attack steps.
+        # Initialize the attack horizon assuming the horizon is the direct children attack steps.
         for node in self.attackgraph_dictionary[self.start_node].children:
             self.horizon.add(node.id)
             came_from[node.id].append(self.start_node)
 
-        costs = self.get_costs()
+        costs = self.cost_dictionary
         cost = 0
         
         traversable_nodes_exist = True
@@ -410,7 +410,7 @@ class AttackSimulation:
         # Start BFS from the start node with distance 0.
         queue = deque([(self.start_node, 0)])  
         self.visited = set([self.start_node]) 
-        costs = self.get_costs() # TODO Replace with cost attribute.
+        costs = self.cost_dictionary
         while queue:
             node, cost = queue.popleft()
             # Explore the horizon of the current node.
