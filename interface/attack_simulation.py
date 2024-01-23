@@ -97,7 +97,7 @@ class AttackSimulation:
         """
         # Add all children nodes to the path attribute.
         for node_id in self.attackgraph_dictionary.keys():
-            self.path[node_id] = self.attackgraph_dictionary[node_id].children
+            self.path[node_id] = self.attackgraph_dictionary[node_id].children.copy()
 
         # Mark the attacker node as visited by adding the node id to visited.
         attacker_entry_point_id = self.attacker.node.id  # TODO
@@ -137,7 +137,7 @@ class AttackSimulation:
 
                     # Update the Attacker status.
                     self.attacker.reached_attack_steps.append(attacked_node)
-                   
+
                     # Upload attacker path and horizon.
                     self.upload_graph_to_neo4j(neo4j_graph_connection, add_horizon=True)
                     print("Attack step was compromised.")
@@ -169,7 +169,6 @@ class AttackSimulation:
             )
             neo4j_graph_connection.create(neo4j_node)
             neo4j_node_dict[node_id] = neo4j_node
-            print("ye")
         return neo4j_node_dict
         
     def upload_graph_to_neo4j(self, neo4j_graph_connection, add_horizon=False):
