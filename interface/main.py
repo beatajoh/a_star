@@ -1,5 +1,4 @@
 from py2neo import Graph
-import os
 import maltoolbox.attackgraph.attackgraph
 import maltoolbox.ingestors.neo4j
 import maltoolbox.model.model
@@ -41,10 +40,9 @@ def main():
     attacker_entry_point = attacker.node.id
     print("Attacker attack step id:", attacker_entry_point) 
 
-    # Change nodes with type 'defense' so that is_necessary=False.
-    for node in attackgraph.nodes:
-        if node.type == 'defense':
-            node.is_necessary = False
+    # Calculate viability and necessity of nodes in attackgraph.
+    # Note that earlier all defenses had the setting is_necessary=False.
+    maltoolbox.attackgraph.analyzers.apriori.calculate_viability_and_necessity(attackgraph)
 
     # Upload the attack graph and model to Neo4j.
     print("Starting uploading the model and attackgraph to Neo4j.")
