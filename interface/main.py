@@ -4,6 +4,7 @@ import maltoolbox.ingestors.neo4j
 import maltoolbox.model.model
 import maltoolbox.language.specification
 import maltoolbox.language.classes_factory
+import maltoolbox.attackgraph.analyzers.apriori
 
 # Custom files.
 from attack_simulation import AttackSimulation
