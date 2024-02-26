@@ -81,7 +81,7 @@ Now also add "Application:0:attemptFullAccessFromSupplyChainCompromise" as an at
 
 - It should be able to find Application:0:attemptModify without a budget. But this will be more expensive compared to the previous case since we add a couple of 'or' steps.
 
-** TTC **
+**TTC**
 To use Time-To-Comprimse, instanciate AttackSimulation object with use_ttc=True.
 
 #### TODO
