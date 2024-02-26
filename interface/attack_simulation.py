@@ -95,18 +95,27 @@ class AttackSimulation:
         Returns:
         - cost: The total cost of the explored path.
         """
+        self.attacker.reached_attack_steps.append(self.attackgraph_instance.get_node_by_id(self.attacker.node.id))
+        attack_surface = maltoolbox.attackgraph.query.get_attack_surface(self.attackgraph_instance, self.attacker)
+        print(len(self.attacker.reached_attack_steps))
+        #maltoolbox.attackgraph.query.get_attack_surface()
         # Add all children nodes to the path attribute.
-        for node_id in self.attackgraph_dictionary.keys():
-            self.path[node_id] = self.attackgraph_dictionary[node_id].children.copy()
+        #for node_id in self.attackgraph_dictionary.keys():
+        #    self.path[node_id] = self.attackgraph_dictionary[node_id].children.copy()
 
+        print(type(self.attackgraph_instance.nodes))
+        for node in self.attackgraph_instance.nodes:
+            self.path[node.id] = node.children.copy()
         # Mark the attacker node as visited by adding the node id to visited.
-        attacker_entry_point_id = self.attacker.node.id  # TODO
-        self.visited.add(attacker_entry_point_id)
+        # attacker_entry_point_id = self.attacker.node.id  # TODO
+        #self.visited.add(attacker_entry_point_id)
 
         # Initialize the horizon nodes.
-        for node in self.visited:
-            self.add_children_to_horizon(self.attackgraph_dictionary[node])
+        #for node in self.visited:
+        #    self.add_children_to_horizon(self.attackgraph_dictionary[node])
         
+        self.visited = self.attacker.reached_attack_steps
+        self.horizon = attack_surface
         # Upload attacker path and horizon.
         self.upload_graph_to_neo4j(neo4j_graph_connection, add_horizon=True)
             
@@ -150,9 +159,8 @@ class AttackSimulation:
                 # Return.
                 return
     
-    def create_neo4j_node(self, neo4j_graph_connection, set_of_node_ids, neo4j_node_dict, is_horizon_node=False):
-        for node_id in set_of_node_ids:
-            node = self.attackgraph_dictionary[node_id]
+    def create_neo4j_node(self, neo4j_graph_connection, set_of_nodes, neo4j_node_dict, is_horizon_node=False):
+        for node in set_of_nodes:
             asset_and_id = node.id.split(':')
             asset_and_id = asset_and_id[0] + ':' + asset_and_id[1]
             neo4j_node = Node(
@@ -168,7 +176,7 @@ class AttackSimulation:
                 is_viable = str(node.is_viable),
             )
             neo4j_graph_connection.create(neo4j_node)
-            neo4j_node_dict[node_id] = neo4j_node
+            neo4j_node_dict[node.id] = neo4j_node
         return neo4j_node_dict
         
     def upload_graph_to_neo4j(self, neo4j_graph_connection, add_horizon=False):
