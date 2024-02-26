@@ -1,5 +1,3 @@
-import help_functions
-import constants
 import maltoolbox.attackgraph.query
 import maltoolbox
 import maltoolbox.attackgraph.attackgraph
@@ -7,6 +5,9 @@ from py2neo import Node, Relationship
 from collections import deque
 import heapq
 import random
+
+import help_functions
+import constants
 
 class AttackSimulation:
     
@@ -40,6 +41,15 @@ class AttackSimulation:
         """
         self.target_node = target_node_id
 
+    def set_start_node(self, start_node_id):
+        """
+        Set the start node for the simulation.
+
+        Parameters:
+        - start_node: The ID of the target node.
+        """
+        self.start_node = start_node_id
+
     def set_attacker_cost_budget(self, attacker_cost_budget):
         """
         Set the attacker's cost budget for the simulation.
@@ -49,13 +59,13 @@ class AttackSimulation:
         """
         self.attacker_cost_budget = attacker_cost_budget
 
-    def print_horizon(self):
+    def print_attack_surface(self):
         """
         Prints the horizon attack steps and the type in custom format.
         """
-        horizon_dict = self.build_horizon_dict()
+        attack_surface_dict = self.build_attack_surface_dict()
         print(f"{constants.RED}Attacker Horizon{constants.STANDARD}")
-        help_functions.print_dictionary(horizon_dict)
+        help_functions.print_dictionary(attack_surface_dict)
 
     def add_children_to_horizon(self, node):
         """
@@ -72,7 +82,7 @@ class AttackSimulation:
             if child.id not in self.visited:
                 self.horizon.add(child.id)
 
-    def build_horizon_dict(self):
+    def build_attack_surface_dict(self):
         """
         Build a dictionary with an integer as keys and Node ID:s as values.
         
@@ -80,9 +90,8 @@ class AttackSimulation:
         - dict: A dictionary on the form {ID (string): node (AttackGraphNode)}.
         """
         dict = {}
-        for i, node_id in enumerate(self.horizon):
-            node = self.attackgraph_dictionary[node_id]
-            dict[i+1] = [node_id, node.type, str(maltoolbox.attackgraph.query.is_node_traversable_by_attacker(node, self.attacker))]
+        for i, node in enumerate(self.horizon):
+            dict[i+1] = [node.id, node.type, str(maltoolbox.attackgraph.query.is_node_traversable_by_attacker(node, self.attacker))]
         return dict
 
     def step_by_step_attack_simulation(self, neo4j_graph_connection):
@@ -90,32 +99,16 @@ class AttackSimulation:
         Traverse the attack graph step by step. 
         
         Parameters:
-            - neo4j_graph_connection: The Neo4j Graph instance.
-
-        Returns:
-        - cost: The total cost of the explored path.
+        - neo4j_graph_connection: The Neo4j Graph instance.
         """
-        self.attacker.reached_attack_steps.append(self.attackgraph_instance.get_node_by_id(self.attacker.node.id))
-        attack_surface = maltoolbox.attackgraph.query.get_attack_surface(self.attackgraph_instance, self.attacker)
-        print(len(self.attacker.reached_attack_steps))
-        #maltoolbox.attackgraph.query.get_attack_surface()
-        # Add all children nodes to the path attribute.
-        #for node_id in self.attackgraph_dictionary.keys():
-        #    self.path[node_id] = self.attackgraph_dictionary[node_id].children.copy()
+        self.attacker.reached_attack_steps = [self.attackgraph_dictionary[self.start_node]]
+        self.horizon = maltoolbox.attackgraph.query.get_attack_surface(self.attackgraph_instance, self.attacker)
+        self.visited = self.attacker.reached_attack_steps
 
-        print(type(self.attackgraph_instance.nodes))
+        # Add all children nodes to the path attribute.     
         for node in self.attackgraph_instance.nodes:
             self.path[node.id] = node.children.copy()
-        # Mark the attacker node as visited by adding the node id to visited.
-        # attacker_entry_point_id = self.attacker.node.id  # TODO
-        #self.visited.add(attacker_entry_point_id)
 
-        # Initialize the horizon nodes.
-        #for node in self.visited:
-        #    self.add_children_to_horizon(self.attackgraph_dictionary[node])
-        
-        self.visited = self.attacker.reached_attack_steps
-        self.horizon = attack_surface
         # Upload attacker path and horizon.
         self.upload_graph_to_neo4j(neo4j_graph_connection, add_horizon=True)
             
@@ -127,56 +120,55 @@ class AttackSimulation:
 
             # View current attacker horizon.
             if command == '1':
-                self.print_horizon()
+                self.print_attack_surface()
 
             # Action.   
             elif command == '2':
                 # Choose next node to visit.       
-                node_options = self.build_horizon_dict()
-                self.print_horizon()
+                node_options = self.build_attack_surface_dict()
+                self.print_attack_surface()
                 option = input("Choose a node (id) to attack: ")
                 attacked_node_id = node_options[int(option)][0] # Select the node id at index 0.
                 attacked_node = self.attackgraph_dictionary[attacked_node_id]
 
                 # Update horizon if the node can be visited.
-                if attacked_node_id in self.horizon and maltoolbox.attackgraph.query.is_node_traversable_by_attacker(attacked_node, self.attacker):
-                    self.visited.add(attacked_node_id)
-                    self.horizon.remove(attacked_node_id)
-                    self.add_children_to_horizon(attacked_node)
-
-                    # Update the Attacker status.
+                if attacked_node in self.horizon:
+                    # Update the path.
                     self.attacker.reached_attack_steps.append(attacked_node)
-
+                    self.visited = self.attacker.reached_attack_steps
+                    self.horizon = maltoolbox.attackgraph.query.get_attack_surface(self.attackgraph_instance, self.attacker)
+                    self.horizon = [node for node in self.horizon if node != attacked_node]
+                   
                     # Upload attacker path and horizon.
                     self.upload_graph_to_neo4j(neo4j_graph_connection, add_horizon=True)
                     print("Attack step was compromised.")
                 else:
-                    print("The required dependency steps for", attacked_node_id, "has not been traversed by the attacker.")
-                    print("The node was not added to the path.")
+                    print("The node does not exist in the attack surface")
                 # Print horizon nodes.
-                self.print_horizon()
+                self.print_attack_surface()
             elif command == '3':
                 # Return.
                 return
     
     def create_neo4j_node(self, neo4j_graph_connection, set_of_nodes, neo4j_node_dict, is_horizon_node=False):
         for node in set_of_nodes:
-            asset_and_id = node.id.split(':')
-            asset_and_id = asset_and_id[0] + ':' + asset_and_id[1]
-            neo4j_node = Node(
-                str(asset_and_id),
-                str(is_horizon_node),
-                is_horizon_node = is_horizon_node,
-                name = node.name,
-                full_name = node.id,
-                type = node.type,
-                ttc = str(node.ttc),
-                cost = str(self.cost_dictionary[node.id]) if node.name != "firstSteps" else None,
-                is_necessary = str(node.is_necessary),
-                is_viable = str(node.is_viable),
-            )
-            neo4j_graph_connection.create(neo4j_node)
-            neo4j_node_dict[node.id] = neo4j_node
+            if not node.id in neo4j_node_dict.keys():
+                asset_and_id = node.id.split(':')
+                asset_and_id = asset_and_id[0] + ':' + asset_and_id[1]
+                neo4j_node = Node(
+                    str(asset_and_id),
+                    str(is_horizon_node),
+                    is_horizon_node = is_horizon_node,
+                    name = node.name,
+                    full_name = node.id,
+                    type = node.type,
+                    ttc = str(node.ttc),
+                    cost = str(self.cost_dictionary[node.id]) if node.name != "firstSteps" else None,
+                    is_necessary = str(node.is_necessary),
+                    is_viable = str(node.is_viable),
+                )
+                neo4j_graph_connection.create(neo4j_node)
+                neo4j_node_dict[node.id] = neo4j_node
         return neo4j_node_dict
         
     def upload_graph_to_neo4j(self, neo4j_graph_connection, add_horizon=False):
