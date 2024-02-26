@@ -8,7 +8,7 @@ Clone this repository:
 git clone https://github.com/beatajoh/mgg-project
 ```
 #### Virtual environment
-Set up a virtual environment with all necessary dependencies
+Set up a virtual environment with necessary dependencies.
 
 ```sh
 python -m venv env
@@ -82,7 +82,7 @@ Now also add "Application:0:attemptFullAccessFromSupplyChainCompromise" as an at
 - It should be able to find Application:0:attemptModify without a budget. But this will be more expensive compared to the previous case since we add a couple of 'or' steps.
 
 ** TTC **
-To use Time-To-Comprimse, instanciate AttackSimulation object with use_TTC=True.
+To use Time-To-Comprimse, instanciate AttackSimulation object with use_ttc=True.
 
 #### TODO
 * Use mal-toolbox calculation of the attack surface.
