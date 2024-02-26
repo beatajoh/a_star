@@ -2,6 +2,9 @@
 This is an interactive tool for running attack simulations on the mal-toolbox-generated attack graphs.
 The mal-toolbox repository is found at https://github.com/mal-lang/mal-toolbox/.
 
+#### Contact
+Beata Johansson, beatajoh@kth.se
+
 #### Installation
 Clone this repository:
 ```sh
