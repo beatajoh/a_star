@@ -47,8 +47,8 @@ python main.py
 1. Activate the venv.
 2. Run the interface with ````python main.py````.
 3. Now you can choose the *step-by-step* attack option, or any of the graph algorithms.
-4. Open the main.py file and look at the comments where some example targets are suggested.
-5. Note: The attacker and its entry points for all simulations are fixed in the code and this will be necessary to modify later.
+4. Select an algorithm and input an example from e.g. the **Tests** section.
+5. Note: The attacker and its entry points for all simulations are fixed in the code and are specific for a model and this will be necessary to modify.
 
 #### Tests
 The file *test.py* contains tests for Dijkstra and Random path. Run the test file with ````python test.py````.
