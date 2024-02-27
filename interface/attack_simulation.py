@@ -276,7 +276,7 @@ class AttackSimulation:
                     came_from[neighbor.id].append(current_node)
         return 0
 
-    def reconstruct_path(self, came_from, current, costs):
+    def reconstruct_path(self, came_from, current, costs, visited_set=set()):
         """
         Reconstructs the backwards attack path from the start node to the given node with recursion.
 
@@ -294,7 +294,6 @@ class AttackSimulation:
         - old_current: The last node in the reconstructed path.
         """
         cost = 0
-        visited_set = set()
         if current != self.start_node:
             # Reconstruct the path backwards from current until the start node is reached.
             while current in came_from.keys() and current != self.start_node:
@@ -305,7 +304,7 @@ class AttackSimulation:
                 if len(current) > 1:
                     for node in current:
                         if self.attackgraph_dictionary[node].is_necessary == True:
-                            path_cost, _= self.reconstruct_path(came_from, node, costs)
+                            path_cost, _, visited_set = self.reconstruct_path(came_from, node, costs, visited_set)
                             cost += path_cost + costs[old_current]
                             self.path[node].append(self.attackgraph_dictionary[old_current])
                             #self.visited.add(old_current)
@@ -317,7 +316,7 @@ class AttackSimulation:
                     current = current[0]
                     #if old_current not in self.visited:
                     if old_current not in visited_set:
-                        print(type(old_current))
+                        print(old_current)
                         cost += costs[old_current]
                         #self.visited.add(old_current)
                         visited_set.add(old_current)
@@ -327,7 +326,7 @@ class AttackSimulation:
             #self.visited.add(self.start_node)
             self.visited.append(self.attackgraph_dictionary[self.start_node])
             visited_set.add(self.start_node)
-        return cost, old_current
+        return cost, old_current, visited_set
 
     def get_costs(self):
         """
