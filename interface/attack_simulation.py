@@ -342,56 +342,45 @@ class AttackSimulation:
         """
         Generate a random attack path in the attack graph, considering attacker cost budget and/or target node.
 
-        This method explores a random path in the attack graph, starting from the start node.
-        It uses a random selection strategy among the horizon nodes, respecting the attacker's cost budget
+        This method explores a random path in the attack graph from the start node.
+        It uses a random selection strategy among the attack surface nodes, considering the attacker's cost budget
         and searching for a specific target node if provided.
 
         Returns:
         - cost: The total cost of the random path.
         """
-        self.visited.add(self.start_node)
-        came_from = {key: [] for key in self.attackgraph_dictionary.keys()}
-
-        # Initialize the attack horizon assuming the horizon is the direct children attack steps.
-        for node in self.attackgraph_dictionary[self.start_node].children:
-            self.horizon.add(node.id)
-            came_from[node.id].append(self.start_node)
-
+        print("NEW", self.start_node, self.target_node)
+        self.attacker.reached_attack_steps = [self.attackgraph_dictionary[self.start_node]]
+        self.visited = self.attacker.reached_attack_steps
+        self.horizon = maltoolbox.attackgraph.query.get_attack_surface(self.attackgraph_instance, self.attacker)
         costs = self.cost_dictionary
         cost = 0
-        
-        traversable_nodes_exist = True
-        while traversable_nodes_exist:
-            next_node_id = random.choice(list(self.horizon))
-            next_node = self.attackgraph_dictionary[next_node_id]
+        old_horizon = []
+        while len(self.horizon) != len(old_horizon):
+            node = random.choice(list(self.horizon))
 
             # Attack unvisited node in the horizon.
-            if maltoolbox.attackgraph.query.is_node_traversable_by_attacker(self.attackgraph_dictionary[next_node.id], self.attacker):
-                if self.attacker_cost_budget != None and cost+costs[next_node.id] > self.attacker_cost_budget:
+            if node not in self.visited:
+                # Check if the cost is within cost budget (if the cost budget was specified).
+                if self.attacker_cost_budget != None and cost+costs[node.id] > self.attacker_cost_budget:
                     break
                 
-                # Update status of the path, attacker and horizon.
-                self.visited.add(next_node.id)
-                self.attacker.reached_attack_steps.append(next_node)
-                for parent in came_from[next_node.id]:
-                    self.path[parent].append(self.attackgraph_dictionary[next_node.id])
-                cost += costs[next_node.id]
-
-                # Update the horizon.
-                self.horizon.remove(next_node.id)
-                for node in next_node.children:
-                    if node.id not in self.visited:
-                        self.horizon.add(node.id)
-                        came_from[node.id].append(next_node.id)
+                # Update status of the path, attacker and attack surface.
+                self.visited.append(node)
+                self.attacker.reached_attack_steps.append(node)
+                
+                for parent_node in node.parents:
+                    if parent_node in self.attacker.reached_attack_steps:
+                        self.path[parent_node.id].append(node)
+                        break
+                cost += costs[node.id]
 
                 # Check if the target node was selected (if the target node was specified).
-                if self.target_node != None and next_node.id == self.target_node:
+                if self.target_node != None and node.id == self.target_node:
                     break
-
-            traversable_nodes_exist = False
-            for horizon_node in self.horizon:
-                if maltoolbox.attackgraph.query.is_node_traversable_by_attacker(self.attackgraph_dictionary[horizon_node], self.attacker):
-                    traversable_nodes_exist = True
+                old_horizon = self.horizon
+                self.horizon = maltoolbox.attackgraph.query.get_attack_surface(self.attackgraph_instance, self.attacker)
+        print(self.start_node, self.target_node, cost)
         return cost
 
     def bfs(self):

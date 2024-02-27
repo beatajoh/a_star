@@ -32,6 +32,7 @@ class TestAttackSimulation(unittest.TestCase):
         for node in self.attackgraph.nodes:
             if node.type == 'defense':
                 node.is_necessary = False
+                node.is_viable = True
 
         # Add the attacker.
         self.model.attackers = []
@@ -189,7 +190,7 @@ class TestAttackSimulation(unittest.TestCase):
 
         # Assert
         self.assertGreater(cost, 0)
-        self.assertIn(target_attack_step, attack_simulation.visited)
+        self.assertIn(attack_simulation.attackgraph_dictionary[target_attack_step], attack_simulation.visited)
 
     def test_random_path_with_infinate_cost_budget_on_unreachable_node(self):
         # Arrange
@@ -206,9 +207,9 @@ class TestAttackSimulation(unittest.TestCase):
 
         # Assert
         self.assertGreater(cost, 0)
-        self.assertNotIn(target_attack_step, attack_simulation.visited)
+        self.assertNotIn(attack_simulation.attackgraph_dictionary[target_attack_step], attack_simulation.visited)
         for horizon_node in attack_simulation.horizon:
-                if maltoolbox.attackgraph.query.is_node_traversable_by_attacker(attack_simulation.attackgraph_dictionary[horizon_node], attack_simulation.attacker):
+                if maltoolbox.attackgraph.query.is_node_traversable_by_attacker(horizon_node, attack_simulation.attacker):
                     self.assertFalse(horizon_node)
 
     def test_random_path_with_infinate_cost_budget_on_reachable_node_containing_and_step(self):
@@ -227,7 +228,7 @@ class TestAttackSimulation(unittest.TestCase):
 
             # Assert
             self.assertGreater(cost, optimal_cost)
-            self.assertIn(target_attack_step, attack_simulation.visited)
+            self.assertIn(attack_simulation.attackgraph_dictionary[target_attack_step], attack_simulation.visited)
 
     def test_random_path_with_restricted_cost_budget_on_reachable_target_node(self):
             # Arrange
@@ -246,7 +247,7 @@ class TestAttackSimulation(unittest.TestCase):
 
             # Assert
             self.assertLessEqual(cost, attacker_cost_budget)
-            self.assertNotIn(target_attack_step, attack_simulation.visited)
+            self.assertNotIn(attack_simulation.attackgraph_dictionary[target_attack_step], attack_simulation.visited)
 
     def test_random_path_with_cost_budget_and_no_target_node(self):
                 # Arrange
@@ -279,7 +280,7 @@ class TestAttackSimulation(unittest.TestCase):
                 # Assert
                 self.assertLessEqual(len(attack_simulation.visited), number_of_traversable_attack_steps)
                 for horizon_node in attack_simulation.horizon:
-                    if maltoolbox.attackgraph.query.is_node_traversable_by_attacker(attack_simulation.attackgraph_dictionary[horizon_node], attack_simulation.attacker):
+                    if maltoolbox.attackgraph.query.is_node_traversable_by_attacker(horizon_node, attack_simulation.attacker):
                         self.assertFalse(horizon_node)
 
 if __name__ == '__main__':
