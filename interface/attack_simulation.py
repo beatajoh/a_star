@@ -27,8 +27,8 @@ class AttackSimulation:
         self.target_node = None
         self.attacker_cost_budget = None
         self.use_ttc = use_ttc
-        self.horizon = set()
-        self.visited = set()
+        self.horizon = []
+        self.visited = []
         self.path = {node.id: [] for node in attackgraph_instance.nodes}
         self.cost_dictionary = self.get_costs()
 
@@ -180,8 +180,9 @@ class AttackSimulation:
         - add_horizon: Flag which if True, adds on the horizon to Neo4j.
 
         Notes:
-        - The function assumes the existence of the following instance variables:
-            - self.visited: A set of visited nodes.
+        - The function assumes the existence of the following variables:
+            - self.visited: A list of visited nodes.
+            - self.horizon: A list of horizon nodes.
             - self.attackgraph_dictionary: A dictionary representing the attack graph.
             - self.path: A dictionary containing the path.
         """
@@ -210,25 +211,25 @@ class AttackSimulation:
         """
         Find the shortest path between two nodes using Dijkstra's algorithm with added 
         conditions for processing 'and' nodes.
+        Note: mal-toolbox attack surface is not used in this function!
         
         Returns:
-        A tuple on the form cost
-        - cost: Integer representing the total cost of the path.
+        - cost: Total cost of the path.
         """
         node_ids = list(self.attackgraph_dictionary.keys())
         open_set = []
         heapq.heappush(open_set, (0, self.start_node))
         came_from = {key: [] for key in node_ids}
 
-        # The g_score is a map with default value of "infinity".
+        # The g_score is a map with large values.
         g_score = dict.fromkeys(node_ids, 10000)
         g_score[self.start_node] = 0
 
-        # The estimated score between the nodes, and the target.
+        # Estimated score between each node and target.
         h_score = dict.fromkeys(node_ids, 0)
     
         # For node n, f_score[n] = g_score[n] + h_score(n). f_score[n] represents our current best guess as to
-        # How cheap a path could be from start to finish if it goes through n.
+        # how cheap a path could be from start to finish if it goes through n.
         f_score = dict.fromkeys(node_ids, 0)
         f_score[self.start_node] = h_score[self.start_node]
         
@@ -239,19 +240,20 @@ class AttackSimulation:
             # The current_node is the node in open_set having the lowest f_score value.
             _, current_node = heapq.heappop(open_set)
 
-            # Stop condition.
+            # Stop when target node is found.
             if current_node == self.target_node:
-                self.visited = set()
+                self.cost_dictionary = costs_copy
                 return self.reconstruct_path(came_from, current_node, costs_copy)[0]
 
-            # Iterate over the neighboring nodes assuming this is the direct children attack steps.
+            # Iterate over the attack surface nodes.
             current_neighbors = self.attackgraph_dictionary[current_node].children
             for neighbor in current_neighbors:  
                 tentative_g_score = g_score[current_node] + costs[neighbor.id]
+
                 # Try the neighbor node with a lower g_score than the previous node.
                 if tentative_g_score < g_score[neighbor.id]:
-                    # If it is an 'or' node or if the and all parents to the 'and' node has been visited,
-                    # continue to try this path.      
+
+                    # Add the node to the path.
                     if maltoolbox.attackgraph.query.is_node_traversable_by_attacker(neighbor, self.attacker):
                         came_from[neighbor.id].append(current_node)
                         g_score[neighbor.id] = tentative_g_score
@@ -259,11 +261,16 @@ class AttackSimulation:
                         self.attacker.reached_attack_steps.append(neighbor)
                         if neighbor.id not in open_set:
                             heapq.heappush(open_set, (f_score[neighbor.id], neighbor.id))
-                    # If the node is a necessary 'and' node, still update the node cost and keep track of the path.
+
+                    # If 'and' node was not added to the path,
+                    # update the node cost and keep track of the path.
                     elif neighbor.type == 'and':
                         costs[neighbor.id] = tentative_g_score
+                        print("diff", costs[neighbor.id], costs_copy[neighbor.id])
                         came_from[neighbor.id].append(current_node)
-                # If the node is a necessary 'and' node, still update the node cost and keep track of the path.
+
+                # If a necessary 'and' node was not added to the path and g_scores are equal,
+                # update the node cost and keep track of the path.
                 elif neighbor.type == 'and' and self.attackgraph_dictionary[current_node].is_necessary == True:
                     costs[neighbor.id] = tentative_g_score
                     came_from[neighbor.id].append(current_node)
@@ -287,6 +294,7 @@ class AttackSimulation:
         - old_current: The last node in the reconstructed path.
         """
         cost = 0
+        visited_set = set()
         if current != self.start_node:
             # Reconstruct the path backwards from current until the start node is reached.
             while current in came_from.keys() and current != self.start_node:
@@ -300,17 +308,25 @@ class AttackSimulation:
                             path_cost, _= self.reconstruct_path(came_from, node, costs)
                             cost += path_cost + costs[old_current]
                             self.path[node].append(self.attackgraph_dictionary[old_current])
-                            self.visited.add(old_current)
+                            #self.visited.add(old_current)
+                            visited_set.add(old_current)
+                            self.visited.append(self.attackgraph_dictionary[old_current])
                     break
                 # Condition for 'or' nodes.
                 else:
                     current = current[0]
-                    if old_current not in self.visited:
+                    #if old_current not in self.visited:
+                    if old_current not in visited_set:
+                        print(type(old_current))
                         cost += costs[old_current]
-                        self.visited.add(old_current)
+                        #self.visited.add(old_current)
+                        visited_set.add(old_current)
+                        self.visited.append(self.attackgraph_dictionary[old_current])
                     if old_current not in self.path[current]:
                         self.path[current].append(self.attackgraph_dictionary[old_current])
-            self.visited.add(self.start_node)
+            #self.visited.add(self.start_node)
+            self.visited.append(self.attackgraph_dictionary[self.start_node])
+            visited_set.add(self.start_node)
         return cost, old_current
 
     def get_costs(self):
@@ -349,38 +365,43 @@ class AttackSimulation:
         Returns:
         - cost: The total cost of the random path.
         """
-        print("NEW", self.start_node, self.target_node)
         self.attacker.reached_attack_steps = [self.attackgraph_dictionary[self.start_node]]
         self.visited = self.attacker.reached_attack_steps
-        self.horizon = maltoolbox.attackgraph.query.get_attack_surface(self.attackgraph_instance, self.attacker)
+        self.horizon = maltoolbox.attackgraph.query.get_attack_surface(self.attackgraph_instance, self.attacker)       
+        horizon_set = {node.id for node in self.horizon}
+        visited_set = {node.id for node in self.visited}
+
         costs = self.cost_dictionary
         cost = 0
-        old_horizon = []
-        while len(self.horizon) != len(old_horizon):
+        while len(horizon_set-visited_set) > 0:
             node = random.choice(list(self.horizon))
 
             # Attack unvisited node in the horizon.
             if node not in self.visited:
+
                 # Check if the cost is within cost budget (if the cost budget was specified).
                 if self.attacker_cost_budget != None and cost+costs[node.id] > self.attacker_cost_budget:
                     break
                 
-                # Update status of the path, attacker and attack surface.
-                self.visited.append(node)
-                self.attacker.reached_attack_steps.append(node)
-                
+                # Find a parent node and update path.
+                parent_node_id = self.start_node
                 for parent_node in node.parents:
                     if parent_node in self.attacker.reached_attack_steps:
-                        self.path[parent_node.id].append(node)
+                        parent_node_id = parent_node.id
                         break
+                self.path[parent_node_id].append(node)
+                self.visited.append(node)
+                visited_set.add(node.id)
+                self.attacker.reached_attack_steps.append(node)
                 cost += costs[node.id]
 
                 # Check if the target node was selected (if the target node was specified).
                 if self.target_node != None and node.id == self.target_node:
                     break
-                old_horizon = self.horizon
+                
+                # Update attack surface.
                 self.horizon = maltoolbox.attackgraph.query.get_attack_surface(self.attackgraph_instance, self.attacker)
-        print(self.start_node, self.target_node, cost)
+                horizon_set = {node.id for node in self.horizon}
         return cost
 
     def bfs(self):

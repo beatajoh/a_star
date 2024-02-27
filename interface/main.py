@@ -35,7 +35,6 @@ def main():
     asset = model.get_asset_by_id(0)
     model.attackers[0].entry_points.append((asset, ["attemptFullAccessFromSupplyChainCompromise"]))
     attackgraph.attach_attackers(model)
-
     attacker = attackgraph.attackers[0]
     attacker_entry_point = attacker.node.id
     print("Attacker attack step id:", attacker_entry_point) 
@@ -73,7 +72,6 @@ def main():
             attack_simulation.set_target_node(target_node_id)
             cost = attack_simulation.dijkstra()
             print("The cost for the attacker for traversing the path", cost)
-            print("Visited attack steps", attack_simulation.visited)
             attack_simulation.upload_graph_to_neo4j(neo4j_graph_connection, add_horizon=False)
 
     elif user_input == attack_options[2]:
