@@ -300,38 +300,29 @@ class AttackSimulation:
                 old_current = current
                 # Get all parent nodes to current in the path.
                 current = came_from[current]
-                # Condition for 'and' node.       
+                # Condition for 'and' nodes.       
                 if len(current) > 1:
                     for node in current:
                         if self.attackgraph_dictionary[node].is_necessary == True:
                             path_cost, _= self.reconstruct_path(came_from, node, costs)
                             cost += path_cost + costs[old_current]
                             self.path[node].append(self.attackgraph_dictionary[old_current])
-                            #self.visited.add(old_current)
                             visited_set.add(old_current)
                             self.visited.append(self.attackgraph_dictionary[old_current])
                     break
                 # Condition for 'or' nodes.
                 else:
                     current = current[0]
-                    #if old_current not in self.visited:
                     if old_current not in visited_set:
-                        
-                        #self.visited.add(old_current)
                         visited_set.add(old_current)
                         self.visited.append(self.attackgraph_dictionary[old_current])
                         if self.attackgraph_dictionary[old_current] not in self.path[current]:
                             cost += costs[old_current]
-                    #if old_current not in self.path[current]:
                     if self.attackgraph_dictionary[old_current] not in self.path[current]:
                         self.path[current].append(self.attackgraph_dictionary[old_current])
                 
-            #self.visited.add(self.start_node)
             self.visited.append(self.attackgraph_dictionary[self.start_node])
             visited_set.add(self.start_node)
-            for key in self.path.keys():
-                if self.attackgraph_dictionary[key].type != 'and':
-                    print(self.attackgraph_dictionary[key].id, len(self.path[key]))
         return cost, old_current
 
     def get_costs(self):

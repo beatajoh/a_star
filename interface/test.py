@@ -6,7 +6,6 @@ import maltoolbox.language.specification
 import maltoolbox.language.classes_factory
 import maltoolbox.attackgraph.attacker
 import maltoolbox.attackgraph.query
-from py2neo import Graph
 
 # Custom files.
 import constants
@@ -64,9 +63,6 @@ class TestAttackSimulation(unittest.TestCase):
         attack_simulation.set_target_node(target_attack_step)
         cost = attack_simulation.dijkstra()
         visited = set([node.id for node in attack_simulation.visited])
-        
-        neo4j_graph_connection = Graph(uri=constants.URI, user=constants.USERNAME, password=constants.PASSWORD, name=constants.DBNAME)
-        attack_simulation.upload_graph_to_neo4j(neo4j_graph_connection, add_horizon=False)
 
         # Assert
         self.assertEqual(cost, actual_cost)
