@@ -6,7 +6,6 @@ import maltoolbox.language.specification
 import maltoolbox.language.classes_factory
 import maltoolbox.attackgraph.analyzers.apriori
 
-# Custom files.
 from attack_simulation import AttackSimulation
 import constants
 import help_functions
@@ -36,13 +35,12 @@ def main():
     asset = model.get_asset_by_id(0)
     model.attackers[0].entry_points.append((asset, ["attemptFullAccessFromSupplyChainCompromise"]))
     attackgraph.attach_attackers(model)
-
     attacker = attackgraph.attackers[0]
     attacker_entry_point = attacker.node.id
     print("Attacker attack step id:", attacker_entry_point) 
 
     # Calculate viability and necessity of nodes in attackgraph.
-    # Note that earlier all defenses had the setting is_necessary=False.
+    # Note: earlier all defenses had the setting is_necessary=False.
     maltoolbox.attackgraph.analyzers.apriori.calculate_viability_and_necessity(attackgraph)
 
     # Upload the attack graph and model to Neo4j.
@@ -51,7 +49,7 @@ def main():
     maltoolbox.ingestors.neo4j.ingest_model(model, constants.URI, constants.USERNAME, constants.PASSWORD, constants.DBNAME, delete=False)
     print("The model and attackgraph is uploaded to Neo4j.")
 
-    # Create AttackSimulation instance.
+    # Create AttackSimulation.
     attack_simulation = AttackSimulation(attackgraph, attacker, use_ttc=False) 
 
     # Display algorithm options.
@@ -67,19 +65,18 @@ def main():
         attack_simulation.upload_graph_to_neo4j(neo4j_graph_connection, add_horizon=True)
 
     elif user_input == attack_options[1]:
-        # Traverse attack graph with Dijkstra's algorithm, to get the shortest path.
+        # Traverse attack graph with modified Dijkstra's algorithm - to get the shortest path.
         print(f"{constants.PINK}{constants.ATTACK_OPTIONS[user_input]}{constants.STANDARD}")
         target_node_id = input("Enter the target node id: ")
         if target_node_id in attack_simulation.attackgraph_dictionary.keys():
             attack_simulation.set_target_node(target_node_id)
             cost = attack_simulation.dijkstra()
             print("The cost for the attacker for traversing the path", cost)
-            print("Visited attack steps", attack_simulation.visited)
             attack_simulation.upload_graph_to_neo4j(neo4j_graph_connection, add_horizon=False)
 
     elif user_input == attack_options[2]:
-        # Traverse attack graph with random walker algorithm (to get a random path).
-        # It is optional to enter a target or attacker cost budget.
+        # Traverse attack graph with random algorithm - to get a random path.
+        # It is optional to enter a target and attacker cost budget.
         print(f"{constants.PINK}{constants.ATTACK_OPTIONS[user_input]}{constants.STANDARD}")
         target_node_id = input("Enter the target node id (or press enter): ")
         if target_node_id in attack_simulation.attackgraph_dictionary.keys():
