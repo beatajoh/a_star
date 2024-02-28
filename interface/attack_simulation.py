@@ -407,22 +407,23 @@ class AttackSimulation:
         This method explores the attack graph starting from the specified start node,
         considering a cost budget for the attacker. It calculates the total cost of the
         paths within the budget and returns the final cost. Note that this method does not 
-        consider the type of the attack steps.
+        consider all attack graph logic.
 
         Returns:
         - cost: The total cost of the paths explored within the attacker's cost budget.
         """
         # Start BFS from the start node with distance 0.
-        queue = deque([(self.start_node, 0)])  
-        self.visited = set([self.start_node]) 
+        node = self.attackgraph_dictionary[self.start_node]
+        queue = deque([(node, 0)])  
+        self.visited = [node]
         costs = self.cost_dictionary
         while queue:
             node, cost = queue.popleft()
             # Explore the horizon of the current node.
-            for link in self.attackgraph_dictionary[node].children:
-                next_cost = cost + costs[link.id]
-                if link.id not in self.visited and next_cost <= self.attacker_cost_budget:
-                    self.visited.add(link.id)
-                    queue.append((link.id, next_cost))
-                    self.path[node].append(link)
+            for child_node in node.children:
+                next_cost = cost + costs[child_node.id]
+                if next_cost <= self.attacker_cost_budget:
+                    self.visited.append(child_node)
+                    queue.append((child_node, next_cost))
+                    self.path[node.id].append(child_node)
         return cost
