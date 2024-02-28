@@ -94,7 +94,7 @@ def main():
         # Traverse attack graph with breadth first search to retrieve the subgraph within the attacker
         # cost budget.
         print(f"{constants.PINK}{constants.ATTACK_OPTIONS[user_input]}{constants.STANDARD}")
-        attacker_cost_budget = input("Enter the attacker cost budget as integer (or press enter): ")
+        attacker_cost_budget = input("Enter the attacker cost budget as integer: ")
         if attacker_cost_budget != '':
             attack_simulation.set_attacker_cost_budget(int(attacker_cost_budget))
             cost = attack_simulation.bfs()
